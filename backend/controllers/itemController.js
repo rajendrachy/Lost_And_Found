@@ -226,7 +226,9 @@ exports.submitClaim = async (req, res) => {
             sender: req.user.id,
             item: item._id,
             type: 'claim',
-            message: `New claim request for your found item: ${item.title}`
+            message: item.type === 'lost' 
+                ? `Someone says they found your lost item: ${item.title}` 
+                : `New claim request for your found item: ${item.title}`
         });
 
         res.json({ msg: 'Claim submitted successfully. Please wait for the founder to verify.' });

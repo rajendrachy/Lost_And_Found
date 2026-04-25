@@ -226,7 +226,6 @@ const ItemDetails = () => {
                 </div>
               )}
 
-              {/* CLAIM SYSTEM */}
               {item?.type === 'found' && item?.status === 'active' && !isOwner && !hasClaimed && (
                  <div className="card" style={{ padding: '2rem', background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '2rem' }}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 900, marginBottom: '0.5rem' }}>Is this yours?</h3>
@@ -274,7 +273,131 @@ const ItemDetails = () => {
                  </div>
               )}
 
+              {/* I FOUND THIS - For Lost Items */}
+              {item?.type === 'lost' && item?.status === 'active' && !isOwner && !hasClaimed && (
+                <div className="card" style={{ 
+                  padding: '0', 
+                  overflow: 'hidden',
+                  background: 'white', 
+                  border: '2px solid #d1fae5', 
+                  marginBottom: '2rem',
+                  boxShadow: '0 10px 30px rgba(16,185,129,0.08)'
+                }}>
+                  {/* Header Banner */}
+                  <div style={{ 
+                    padding: '1.5rem 2rem', 
+                    background: 'linear-gradient(135deg, #059669, #10b981)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '1rem' 
+                  }}>
+                    <div style={{ 
+                      width: 48, height: 48, borderRadius: '14px', 
+                      background: 'rgba(255,255,255,0.2)', 
+                      backdropFilter: 'blur(10px)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'white', flexShrink: 0
+                    }}>
+                      <Search size={24} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'white', marginBottom: '0.15rem' }}>Did you find this item?</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>Help reunite this item with its owner</p>
+                    </div>
+                  </div>
 
+                  {/* Form Body */}
+                  <div style={{ padding: '2rem' }}>
+                    <form onSubmit={handleClaim}>
+                      {/* Message */}
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 900, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '0.5rem' }}>
+                          Where did you find it? <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <textarea 
+                          className="form-input" 
+                          placeholder="Describe where and when you found this item (e.g. I found it near Ratnapark bus stop yesterday evening...)" 
+                          value={claimMessage}
+                          onChange={(e) => setClaimMessage(e.target.value)}
+                          required
+                          style={{ minHeight: '100px', padding: '1rem', borderColor: '#d1fae5', borderRadius: '14px' }}
+                        />
+                      </div>
+
+                      {/* Contact Details - Optional */}
+                      <div style={{ 
+                        padding: '1.25rem', 
+                        background: '#f0fdf4', 
+                        borderRadius: '16px', 
+                        border: '1px solid #d1fae5', 
+                        marginBottom: '1.5rem' 
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                          <Shield size={14} color="#059669" />
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669' }}>Contact Details (Optional)</span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6ee7b7', marginLeft: 'auto' }}>Shared only with the owner</span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                          <div>
+                            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '0.4rem' }}>Phone Number</label>
+                            <input 
+                              type="tel" 
+                              className="form-input" 
+                              placeholder="98XXXXXXXX" 
+                              value={claimPhone}
+                              onChange={(e) => setClaimPhone(e.target.value)}
+                              style={{ padding: '0.75rem 1rem', borderColor: '#d1fae5', borderRadius: '12px', fontSize: '0.9rem' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '0.4rem' }}>Email Address</label>
+                            <input 
+                              type="email" 
+                              className="form-input" 
+                              placeholder="you@example.com" 
+                              value={claimEmail}
+                              onChange={(e) => setClaimEmail(e.target.value)}
+                              style={{ padding: '0.75rem 1rem', borderColor: '#d1fae5', borderRadius: '12px', fontSize: '0.9rem' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Submit */}
+                      <button type="submit" disabled={isClaiming} className="btn btn-block" style={{ 
+                        background: 'linear-gradient(135deg, #059669, #10b981)', 
+                        color: 'white', 
+                        border: 'none',
+                        padding: '1rem', 
+                        borderRadius: '14px', 
+                        fontSize: '0.9rem', 
+                        fontWeight: 900,
+                        boxShadow: '0 8px 20px rgba(16,185,129,0.25)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.3s'
+                      }}>
+                        <CheckCircle size={18} />
+                        {isClaiming ? 'Submitting...' : 'I Found This Item!'}
+                      </button>
+                    </form>
+                    {claimStatus && (
+                      <div style={{ 
+                        marginTop: '1rem', padding: '0.85rem 1rem', borderRadius: '12px',
+                        fontSize: '0.85rem', fontWeight: 700, 
+                        background: claimStatus.includes('success') ? '#f0fdf4' : '#fef2f2',
+                        color: claimStatus.includes('success') ? '#059669' : '#ef4444',
+                        border: claimStatus.includes('success') ? '1px solid #d1fae5' : '1px solid #fecaca'
+                      }}>
+                        {claimStatus}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               {/* PROGRESS TRACKER (FOR OWNER ONLY) */}
               {isOwner && item?.status !== 'resolved' && (
                 <div className="card" style={{ padding: '2rem', background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '2rem' }}>
