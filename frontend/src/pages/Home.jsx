@@ -254,7 +254,7 @@ function Home() {
             </div>
 
             <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-               <button className="btn btn-outline" onClick={() => navigate('/explore')} style={{ background: 'white', borderColor: '#22c55e', color: '#166534', padding: '1rem 2rem' }}>
+               <button className="btn btn-outline" onClick={() => navigate('/explore?status=resolved')} style={{ background: 'white', borderColor: '#22c55e', color: '#166534', padding: '1rem 2rem' }}>
                  <Heart size={18} style={{ marginRight: '0.5rem' }} /> View All Success Stories <ArrowRight size={18} />
                </button>
             </div>

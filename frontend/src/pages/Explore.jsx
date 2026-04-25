@@ -4,7 +4,7 @@ import ItemCard from '../components/ItemCard';
 import { Search, Filter, MapPin, Tag, Box, ArrowUpDown, Clock, CheckCircle, Shield, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import API from '../api';
 
 const categories = ['All', 'Electronics', 'Pets', 'Documents', 'Accessories', 'Keys', 'Bags', 'Others'];
@@ -12,13 +12,14 @@ const categories = ['All', 'Electronics', 'Pets', 'Documents', 'Accessories', 'K
 const Explore = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [type, setType] = useState('all');
   const [category, setCategory] = useState('All');
   const [sort, setSort] = useState('newest');
-  const [status, setStatus] = useState('active');
+  const [status, setStatus] = useState(searchParams.get('status') || 'active');
 
   useEffect(() => {
     const fetchItems = async () => {

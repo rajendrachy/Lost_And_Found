@@ -458,7 +458,11 @@ const Profile = () => {
                                    <button onClick={() => navigate(`/item/${post._id}`)} className="btn btn-outline btn-sm" style={{ flex: 1 }}>View</button>
                                    {activeTab === 'active' && (
                                      <>
-                                       <button onClick={() => handleToggleStatus(post._id)} className="btn btn-primary btn-sm" style={{ flex: 1 }}>Resolve</button>
+                                       {post.type === 'lost' ? (
+                                         <button onClick={() => handleToggleStatus(post._id)} className="btn btn-primary btn-sm" style={{ flex: 1 }}>Resolve</button>
+                                       ) : (
+                                         <button onClick={() => setActiveTab('claims')} className="btn btn-primary btn-sm" style={{ flex: 1, background: '#10b981', borderColor: '#10b981' }}>Manage Claims</button>
+                                       )}
                                        <button onClick={() => handleDelete(post._id)} style={{ padding: '0.5rem', borderRadius: '8px', background: '#fee2e2', border: 'none', color: '#ef4444' }}><Trash2 size={16} /></button>
                                      </>
                                    )}
