@@ -81,7 +81,7 @@ const Safety = () => {
               </p>
             </div>
             <div>
-              <button className="btn" style={{ background: '#ef4444', color: 'white' }}>Report an Issue</button>
+              <button className="btn" style={{ background: '#ef4444', color: 'white' }} onClick={() => navigate('/help')}>Report an Issue</button>
             </div>
           </div>
         </div>
