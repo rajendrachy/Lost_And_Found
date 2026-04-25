@@ -214,7 +214,9 @@ exports.submitClaim = async (req, res) => {
 
         item.claims.push({
             user: req.user.id,
-            message: req.body.message
+            message: req.body.message,
+            phone: req.body.phone,
+            email: req.body.email
         });
 
         await item.save();

@@ -20,6 +20,8 @@ const ItemDetails = () => {
   const [claimMessage, setClaimMessage] = useState('');
   const [isClaiming, setIsClaiming] = useState(false);
   const [claimStatus, setClaimStatus] = useState('');
+  const [claimPhone, setClaimPhone] = useState('');
+  const [claimEmail, setClaimEmail] = useState('');
   const [showHandshakeForm, setShowHandshakeForm] = useState(false);
   const [resolutionStory, setResolutionStory] = useState('');
 
@@ -87,7 +89,7 @@ const ItemDetails = () => {
     if (!currentUser) return navigate('/login');
     setIsClaiming(true);
     try {
-      await API.post(`/items/${id}/claim`, { message: claimMessage });
+      await API.post(`/items/${id}/claim`, { message: claimMessage, phone: claimPhone, email: claimEmail });
       setClaimStatus('Claim submitted successfully! Please wait for verification.');
       // Refresh item data
       const res = await API.get(`/items/${id}`);
@@ -227,7 +229,8 @@ const ItemDetails = () => {
               {/* CLAIM SYSTEM */}
               {item?.type === 'found' && item?.status === 'active' && !isOwner && !hasClaimed && (
                  <div className="card" style={{ padding: '2rem', background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '2rem' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 900, marginBottom: '1rem' }}>Is this yours?</h3>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 900, marginBottom: '0.5rem' }}>Is this yours?</h3>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem', lineHeight: 1.5 }}>Provide proof and your contact details so the finder can reach you.</p>
                     <form onSubmit={handleClaim}>
                        <textarea 
                          className="form-input" 
@@ -237,6 +240,32 @@ const ItemDetails = () => {
                          required
                          style={{ minHeight: '100px', marginBottom: '1rem', padding: '1rem' }}
                        />
+                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                         <div>
+                           <label style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '0.5rem' }}>Phone Number</label>
+                           <input 
+                             type="tel" 
+                             className="form-input" 
+                             placeholder="98XXXXXXXX" 
+                             value={claimPhone}
+                             onChange={(e) => setClaimPhone(e.target.value)}
+                             required
+                             style={{ padding: '0.85rem 1rem' }}
+                           />
+                         </div>
+                         <div>
+                           <label style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '0.5rem' }}>Email Address</label>
+                           <input 
+                             type="email" 
+                             className="form-input" 
+                             placeholder="you@example.com" 
+                             value={claimEmail}
+                             onChange={(e) => setClaimEmail(e.target.value)}
+                             required
+                             style={{ padding: '0.85rem 1rem' }}
+                           />
+                         </div>
+                       </div>
                        <button type="submit" disabled={isClaiming} className="btn btn-primary btn-block">
                          {isClaiming ? 'Submitting...' : 'Submit Claim'}
                        </button>

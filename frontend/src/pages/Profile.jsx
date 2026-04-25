@@ -129,6 +129,23 @@ const VerificationDesk = () => {
                             "{claim.message}"
                           </div>
                         </div>
+
+                        {(claim.phone || claim.email) && (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                            {claim.phone && (
+                              <div style={{ padding: '1rem', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                                <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem' }}>Phone</div>
+                                <div style={{ fontWeight: 800, color: '#166534', fontSize: '0.9rem' }}>{claim.phone}</div>
+                              </div>
+                            )}
+                            {claim.email && (
+                              <div style={{ padding: '1rem', background: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                                <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem' }}>Email</div>
+                                <div style={{ fontWeight: 800, color: '#1e40af', fontSize: '0.9rem', wordBreak: 'break-all' }}>{claim.email}</div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         
                         {claim.status === 'pending' && item.status === 'active' && (
                           <button 

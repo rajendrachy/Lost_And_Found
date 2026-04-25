@@ -44,6 +44,8 @@ const itemSchema = new mongoose.Schema({
     claims: [{
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         message: String,
+        phone: String,
+        email: String,
         status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
         createdAt: { type: Date, default: Date.now }
     }],
