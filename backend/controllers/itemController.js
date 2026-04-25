@@ -105,8 +105,8 @@ exports.toggleStatus = async (req, res) => {
             return res.status(401).json({ msg: 'Not authorized' });
         }
         
-        if (item.type === 'found' && item.status === 'active') {
-            return res.status(400).json({ msg: 'Found items must be resolved through the Verification Desk by approving a valid claim.' });
+        if (item.status === 'active') {
+            return res.status(400).json({ msg: 'Items must be resolved through the Verification Desk by approving a valid claim.' });
         }
 
         const oldStatus = item.status;
