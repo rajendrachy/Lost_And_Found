@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, PlusCircle, User, LogOut, ShieldCheck, LayoutDashboard, Package, Bell } from 'lucide-react';
+import { Search, PlusCircle, User, LogOut, ShieldCheck, LayoutDashboard, Package, Bell, Menu, X, Home, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,6 +11,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const dropdownRef = useRef(null);
@@ -51,10 +52,20 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-inner">
-        <Link to="/" className="navbar-logo">
-          <div className="navbar-logo-icon"><Search size={22} /></div>
-          <span className="navbar-logo-text">Sajha<span>Khoj</span></span>
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button 
+            className="hidden-desktop" 
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            style={{ border: 'none', background: '#f1f5f9', padding: '0.6rem', borderRadius: '12px', color: '#1e293b', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            {showMobileMenu ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          
+          <Link to="/" className="navbar-logo">
+            <div className="navbar-logo-icon"><Search size={22} /></div>
+            <span className="navbar-logo-text">Sajha<span>Khoj</span></span>
+          </Link>
+        </div>
 
         <div className="navbar-links hidden-mobile">
           <Link to="/">Home</Link>
@@ -166,6 +177,44 @@ const Navbar = () => {
             <Link to="/login" className="btn btn-login">Login</Link>
           )}
         </div>
+        <AnimatePresence>
+          {showMobileMenu && (
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              style={{ 
+                position: 'fixed', top: '74px', left: 0, right: 0, bottom: 0, 
+                background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(10px)',
+                zIndex: 9000, padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem'
+              }}
+            >
+              <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Menu</div>
+              <button className="mobile-nav-link" onClick={() => { navigate('/'); setShowMobileMenu(false); }}>
+                <Home size={18} /> Home
+              </button>
+              <button className="mobile-nav-link" onClick={() => { navigate('/explore'); setShowMobileMenu(false); }}>
+                <Search size={18} /> Explore Items
+              </button>
+              <button className="mobile-nav-link" onClick={() => { navigate('/safety'); setShowMobileMenu(false); }}>
+                <ShieldCheck size={18} /> Safety Tips
+              </button>
+              <button className="mobile-nav-link" onClick={() => { navigate('/about'); setShowMobileMenu(false); }}>
+                <Info size={18} /> About Us
+              </button>
+
+              {!user && (
+                <button 
+                  className="btn btn-primary" 
+                  style={{ marginTop: 'auto', padding: '1.25rem' }} 
+                  onClick={() => { navigate('/login'); setShowMobileMenu(false); }}
+                >
+                  Get Started
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </nav>
   );
