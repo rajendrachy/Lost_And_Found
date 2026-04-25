@@ -26,13 +26,13 @@ const ItemCard = ({ item }) => {
         overflow: 'hidden',
         background: 'white',
         border: '1px solid #e2e8f0',
-        borderRadius: '24px',
+        borderRadius: 'clamp(16px, 4vw, 24px)',
         boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01)',
         position: 'relative'
       }}
     >
       {/* Image Container */}
-      <div style={{ position: 'relative', height: '240px', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', height: 'clamp(160px, 30vw, 240px)', overflow: 'hidden' }}>
         <img 
           src={imgSrc} 
           alt={item.title} 
@@ -41,13 +41,13 @@ const ItemCard = ({ item }) => {
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.4))' }}></div>
         
         {/* Badges */}
-        <div style={{ position: 'absolute', top: '1rem', left: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <span style={{ 
-            padding: '0.5rem 0.85rem', 
+            padding: 'clamp(0.35rem, 1.5vw, 0.5rem) clamp(0.6rem, 2vw, 0.85rem)', 
             borderRadius: '12px', 
             background: item.type === 'lost' ? '#ef4444' : '#10b981', 
             color: 'white', 
-            fontSize: '0.65rem', 
+            fontSize: 'clamp(0.55rem, 1.5vw, 0.65rem)', 
             fontWeight: 900, 
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
@@ -61,11 +61,11 @@ const ItemCard = ({ item }) => {
           
           {item.status === 'resolved' && (
             <span style={{ 
-              padding: '0.5rem 0.85rem', 
+              padding: 'clamp(0.35rem, 1.5vw, 0.5rem) clamp(0.6rem, 2vw, 0.85rem)', 
               borderRadius: '12px', 
               background: 'white', 
               color: '#10b981', 
-              fontSize: '0.65rem', 
+              fontSize: 'clamp(0.55rem, 1.5vw, 0.65rem)', 
               fontWeight: 900, 
               boxShadow: '0 8px 15px rgba(0,0,0,0.05)',
               display: 'flex',
@@ -77,7 +77,7 @@ const ItemCard = ({ item }) => {
           )}
         </div>
 
-        <div style={{ position: 'absolute', bottom: '1rem', right: '1rem' }}>
+        <div style={{ position: 'absolute', bottom: '0.75rem', right: '0.75rem' }}>
            <span style={{ 
               padding: '0.4rem 0.75rem', 
               borderRadius: '100px', 
@@ -85,7 +85,7 @@ const ItemCard = ({ item }) => {
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255,255,255,0.3)',
               color: 'white',
-              fontSize: '0.65rem',
+              fontSize: 'clamp(0.55rem, 1.5vw, 0.65rem)',
               fontWeight: 800
            }}>
              {formatTimeAgo(item.createdAt || item.date)}
@@ -94,26 +94,26 @@ const ItemCard = ({ item }) => {
       </div>
 
       {/* Body */}
-      <div style={{ padding: '1.75rem' }}>
+      <div style={{ padding: 'clamp(1rem, 3vw, 1.75rem)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-           <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{item.category}</div>
+           <div style={{ fontSize: 'clamp(0.6rem, 1.5vw, 0.7rem)', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{item.category}</div>
            {item.status === 'active' && <div className="pulse-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }}></div>}
         </div>
         
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '1.25rem', lineHeight: 1.2, height: '2.4em', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+        <h3 style={{ fontSize: 'clamp(1rem, 2.5vw, 1.25rem)', fontWeight: 900, color: '#0f172a', marginBottom: '1.25rem', lineHeight: 1.2, height: '2.4em', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
           {item.title}
         </h3>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>
-             <MapPin size={16} color="#94a3b8" /> {item.location}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: 'clamp(1rem, 3vw, 1.75rem)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#64748b', fontSize: 'clamp(0.75rem, 2vw, 0.85rem)', fontWeight: 600 }}>
+             <MapPin size={16} color="#94a3b8" /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.location}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#64748b', fontSize: 'clamp(0.75rem, 2vw, 0.85rem)', fontWeight: 600 }}>
              <Clock size={16} color="#94a3b8" /> {new Date(item.date).toLocaleDateString()}
           </div>
         </div>
 
-        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
+        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 'clamp(1rem, 3vw, 1.5rem)' }}>
            {!user ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', fontSize: '0.7rem', fontWeight: 900, marginBottom: '1rem', background: '#fff1f2', padding: '0.6rem', borderRadius: '10px' }}>
                  <Shield size={14} /> SECURITY CLEARANCE REQUIRED

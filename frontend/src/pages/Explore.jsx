@@ -20,6 +20,14 @@ const Explore = () => {
   const [category, setCategory] = useState('All');
   const [sort, setSort] = useState('newest');
   const [status, setStatus] = useState(searchParams.get('status') || 'active');
+  const [showFilters, setShowFilters] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -56,47 +64,47 @@ const Explore = () => {
 
       <div style={{ paddingTop: '6rem' }}>
         {/* ═══ ADVANCED HEADER ═══ */}
-        <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', padding: '4rem 1.5rem', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, right: 0, width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(37,99,235,0.05) 0%, transparent 70%)', transform: 'translate(20%, -20%)' }}></div>
+        <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', padding: 'clamp(1.5rem, 5vw, 4rem) 1.5rem', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, right: 0, width: 'clamp(200px, 40vw, 400px)', height: 'clamp(200px, 40vw, 400px)', background: 'radial-gradient(circle, rgba(37,99,235,0.05) 0%, transparent 70%)', transform: 'translate(20%, -20%)' }}></div>
           <div className="container relative">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'clamp(1.5rem, 5vw, 4rem)', alignItems: 'center' }}>
               <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '14px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(59,130,246,0.1)' }}>
+                  <div style={{ width: 'clamp(36px, 8vw, 44px)', height: 'clamp(36px, 8vw, 44px)', borderRadius: '14px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(59,130,246,0.1)' }}>
                     <Search size={22} />
                   </div>
-                  <h1 style={{ fontSize: '3rem', fontWeight: 900, letterSpacing: '-0.03em', color: '#0f172a', lineHeight: 1.1 }}>Explore <br /><span style={{ color: '#3b82f6' }}>Database</span></h1>
+                  <h1 style={{ fontSize: 'clamp(1.75rem, 5vw, 3rem)', fontWeight: 900, letterSpacing: '-0.03em', color: '#0f172a', lineHeight: 1.1 }}>Explore <br /><span style={{ color: '#3b82f6' }}>Database</span></h1>
                 </div>
-                <p style={{ color: '#64748b', fontWeight: 500, fontSize: '1.15rem', maxWidth: '500px', lineHeight: 1.6 }}>
+                <p style={{ color: '#64748b', fontWeight: 500, fontSize: 'clamp(0.9rem, 2vw, 1.15rem)', maxWidth: '500px', lineHeight: 1.6 }}>
                   Access our secure repository of reported items. Use advanced filters to narrow down results and find exactly what you need.
                 </p>
               </motion.div>
 
               <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-                 <div style={{ background: '#f1f5f9', padding: '2.5rem', borderRadius: '32px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.1em', display: 'block', marginBottom: '0.75rem' }}>Global Search</label>
-                      <div style={{ display: 'flex', alignItems: 'center', background: 'white', borderRadius: '16px', padding: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0' }}>
-                        <MapPin size={18} style={{ margin: '0 1rem', color: '#cbd5e1' }} />
-                        <input 
-                          type="text" 
-                          placeholder="What are you looking for?" 
-                          value={search} 
-                          onChange={e => setSearch(e.target.value)}
-                          style={{ flex: 1, border: 'none', outline: 'none', padding: '0.75rem 0', fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', background: 'transparent' }} 
-                        />
+                 <div style={{ background: '#f1f5f9', padding: 'clamp(1.5rem, 4vw, 2.5rem)', borderRadius: '32px', border: '1px solid #e2e8f0' }}>
+                   <div style={{ marginBottom: '1.5rem' }}>
+                     <label style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.1em', display: 'block', marginBottom: '0.75rem' }}>Global Search</label>
+                     <div style={{ display: 'flex', alignItems: 'center', background: 'white', borderRadius: '16px', padding: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0' }}>
+                       <MapPin size={18} style={{ margin: '0 1rem', color: '#cbd5e1' }} />
+                       <input 
+                         type="text" 
+                         placeholder="What are you looking for?" 
+                         value={search} 
+                         onChange={e => setSearch(e.target.value)}
+                         style={{ flex: 1, border: 'none', outline: 'none', padding: '0.75rem 0', fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', background: 'transparent' }} 
+                       />
+                     </div>
+                   </div>
+                   <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      <div style={{ flex: '1 1 140px', minWidth: '120px' }}>
+                         <label style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.1em', display: 'block', marginBottom: '0.75rem' }}>Sort Order</label>
+                         <select value={sort} onChange={e => setSort(e.target.value)} className="form-input" style={{ borderRadius: '14px', padding: '0.85rem', width: '100%' }}>
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                         </select>
                       </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                       <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.1em', display: 'block', marginBottom: '0.75rem' }}>Sort Order</label>
-                          <select value={sort} onChange={e => setSort(e.target.value)} className="form-input" style={{ borderRadius: '14px', padding: '0.85rem' }}>
-                             <option value="newest">Newest First</option>
-                             <option value="oldest">Oldest First</option>
-                          </select>
-                       </div>
-                       <button className="btn btn-primary" style={{ marginTop: 'auto', padding: '0.85rem 2rem', borderRadius: '14px' }}>Apply</button>
-                    </div>
+                      <button className="btn btn-primary" style={{ marginTop: 'auto', padding: '0.85rem 2rem', borderRadius: '14px' }}>Apply</button>
+                   </div>
                  </div>
               </motion.div>
             </div>
@@ -104,18 +112,34 @@ const Explore = () => {
         </div>
 
         {/* ═══ MAIN CONTENT ═══ */}
-        <div className="container" style={{ padding: '4rem 1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '4rem' }}>
+        <div className="container" style={{ padding: 'clamp(1.5rem, 4vw, 4rem) 1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '300px 1fr', gap: isMobile ? '1.5rem' : '2rem' }}>
             
+            {/* Mobile Filter Toggle */}
+            {isMobile && (
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem',
+                  borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white',
+                  fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', width: '100%', justifyContent: 'center',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
+                }}
+              >
+                <Filter size={18} /> {showFilters ? 'Hide Filters' : 'Show Filters'} ({filtered.length})
+              </button>
+            )}
+
             {/* Sidebar Filters */}
-            <aside style={{ position: 'sticky', top: '7rem', height: 'fit-content' }}>
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: '2.5rem', border: '1px solid #e2e8f0', background: 'white' }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                       <Filter size={18} />
-                    </div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 900 }}>Advanced Filters</h3>
-                 </div>
+            {(!isMobile || showFilters) && (
+              <aside style={{ position: isMobile ? 'relative' : 'sticky', top: isMobile ? '0' : '7rem' }}>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: 'clamp(1.5rem, 4vw, 2.5rem)', border: '1px solid #e2e8f0', background: 'white' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         <Filter size={18} />
+                      </div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 900 }}>Advanced Filters</h3>
+                   </div>
 
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
                     {/* Status */}
@@ -143,7 +167,7 @@ const Explore = () => {
                     {/* Type */}
                     <div>
                       <label style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.1em', display: 'block', marginBottom: '1.25rem' }}>Item Type</label>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
                          {['all', 'lost', 'found'].map(t => (
                            <button key={t} onClick={() => setType(t)} style={{ 
                               padding: '1rem', borderRadius: '14px', border: '1.5px solid',
@@ -176,48 +200,49 @@ const Explore = () => {
                       </div>
                     </div>
                  </div>
-              </motion.div>
-            </aside>
+</motion.div>
+              </aside>
+            )}
 
             {/* Main Content Area */}
             <main>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
-                 <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                 <div style={{ fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)', fontWeight: 800, color: '#0f172a' }}>
                     {filtered.length} <span style={{ color: '#94a3b8', fontWeight: 600 }}>{filtered.length === 1 ? 'Report' : 'Reports'} Found</span>
                  </div>
               </div>
 
               {!user ? (
-                 <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: '5rem 2rem', textAlign: 'center', border: '1px solid #fee2e2', background: 'linear-gradient(135deg, #ffffff 0%, #fff1f2 100%)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}>
-                    <div style={{ width: 84, height: 84, borderRadius: '28px', background: '#fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem', boxShadow: '0 10px 25px rgba(239,68,68,0.15)' }}>
-                       <Shield size={40} />
+                 <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: 'clamp(2rem, 8vw, 5rem) 1.5rem', textAlign: 'center', border: '1px solid #fee2e2', background: 'linear-gradient(135deg, #ffffff 0%, #fff1f2 100%)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}>
+                    <div style={{ width: 'clamp(56px, 15vw, 84px)', height: 'clamp(56px, 15vw, 84px)', borderRadius: '28px', background: '#fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem', boxShadow: '0 10px 25px rgba(239,68,68,0.15)' }}>
+                       <Shield size={isMobile ? 28 : 40} />
                     </div>
-                    <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#991b1b', marginBottom: '1rem', letterSpacing: '-0.02em' }}>Security Handshake Required</h2>
-                    <p style={{ color: '#b91c1c', fontWeight: 500, fontSize: '1.1rem', maxWidth: '450px', margin: '0 auto 3rem', lineHeight: 1.6 }}>
+                    <h2 style={{ fontSize: 'clamp(1.25rem, 4vw, 2rem)', fontWeight: 900, color: '#991b1b', marginBottom: '1rem', letterSpacing: '-0.02em' }}>Security Handshake Required</h2>
+                    <p style={{ color: '#b91c1c', fontWeight: 500, fontSize: 'clamp(0.9rem, 2vw, 1.1rem)', maxWidth: '450px', margin: '0 auto 3rem', lineHeight: 1.6 }}>
                        Access to the community database is restricted to verified members. Please sign in to search items and view recovery details.
                     </p>
-                    <div style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center' }}>
-                       <button className="btn btn-primary btn-lg" style={{ background: '#ef4444', borderColor: '#ef4444', padding: '1rem 2.5rem' }} onClick={() => navigate('/login')}>Login to Continue</button>
-                       <button className="btn btn-outline btn-lg" style={{ borderColor: '#fecaca', color: '#ef4444', padding: '1rem 2.5rem' }} onClick={() => navigate('/register')}>Create Account</button>
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                       <button className="btn btn-primary btn-lg" style={{ background: '#ef4444', borderColor: '#ef4444', padding: '1rem 2rem' }} onClick={() => navigate('/login')}>Login to Continue</button>
+                       <button className="btn btn-outline btn-lg" style={{ borderColor: '#fecaca', color: '#ef4444', padding: '1rem 2rem' }} onClick={() => navigate('/register')}>Create Account</button>
                     </div>
                  </motion.div>
               ) : (
                 <>
                   {loading ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem' }}>
                        {[1,2,3,4,5,6].map(i => (
                          <div key={i} style={{ height: 400, background: 'white', borderRadius: '24px', border: '1px solid #f1f5f9' }}></div>
                        ))}
                     </div>
                   ) : filtered.length === 0 ? (
-                    <div className="card" style={{ padding: '6rem 2rem', textAlign: 'center', border: '1px dashed #e2e8f0' }}>
-                       <Box size={64} style={{ color: '#e2e8f0', marginBottom: '1.5rem' }} />
-                       <h3 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>No results found</h3>
+                    <div className="card" style={{ padding: 'clamp(2rem, 8vw, 6rem) 1.5rem', textAlign: 'center', border: '1px dashed #e2e8f0' }}>
+                       <Box size={isMobile ? 40 : 64} style={{ color: '#e2e8f0', marginBottom: '1.5rem' }} />
+                       <h3 style={{ fontSize: 'clamp(1.15rem, 3vw, 1.5rem)', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>No results found</h3>
                        <p style={{ color: '#94a3b8', fontWeight: 600 }}>Try clearing your filters or searching for something else.</p>
                        <button className="btn btn-outline" style={{ marginTop: '2rem' }} onClick={() => { setSearch(''); setType('all'); setCategory('All'); setStatus('active'); }}>Clear All Filters</button>
                     </div>
                   ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem' }}>
                       <AnimatePresence mode="popLayout">
                         {filtered.map((item) => (
                           <ItemCard key={item._id} item={item} />

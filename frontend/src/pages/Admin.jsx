@@ -5,7 +5,7 @@ import API from '../api';
 import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, Users, Box, Trash2, Search, 
-  ArrowLeft, Activity, ShieldCheck, CheckCircle, MapPin 
+  ArrowLeft, Activity, ShieldCheck, CheckCircle, MapPin, AlertTriangle
 } from 'lucide-react';
 
 const Admin = () => {
@@ -16,6 +16,7 @@ const Admin = () => {
   const [stats, setStats] = useState({ users: 0, items: 0, resolved: 0 });
   const [users, setUsers] = useState([]);
   const [items, setItems] = useState([]);
+  const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -35,6 +36,9 @@ const Admin = () => {
       } else if (activeTab === 'items') {
         const res = await API.get('/admin/items');
         setItems(res.data);
+      } else if (activeTab === 'reports') {
+        const res = await API.get('/reports');
+        setReports(res.data);
       }
     } catch (err) {
       console.error(err);
@@ -103,6 +107,7 @@ const Admin = () => {
               { id: 'overview', icon: <LayoutDashboard size={19} />, label: 'System Overview' },
               { id: 'users', icon: <Users size={19} />, label: 'User Directory' },
               { id: 'items', icon: <Box size={19} />, label: 'Item Archives' },
+              { id: 'reports', icon: <AlertTriangle size={19} />, label: 'User Reports' },
             ].map(tab => (
               <button 
                 key={tab.id}
@@ -152,6 +157,7 @@ const Admin = () => {
               {activeTab === 'overview' && 'Global Insights'}
               {activeTab === 'users' && 'Manage Citizens'}
               {activeTab === 'items' && 'Moderation Queue'}
+              {activeTab === 'reports' && 'User Reports'}
             </h1>
           </div>
           
@@ -359,6 +365,78 @@ const Admin = () => {
                   </table>
                   {filteredItems.length === 0 && (
                     <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>No reports found.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* REPORTS TAB */}
+            {activeTab === 'reports' && (
+              <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Subject</th>
+                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Category</th>
+                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Message</th>
+                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Status</th>
+                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900, textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reports.map(report => (
+                        <tr key={report._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '1.25rem 2rem', maxWidth: '200px' }}>
+                            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>{report.subject}</div>
+                          </td>
+                          <td style={{ padding: '1.25rem 2rem' }}>
+                            <span style={{ padding: '0.35rem 0.85rem', borderRadius: '100px', fontSize: '0.7rem', fontWeight: 800, background: '#fef3c7', color: '#d97706' }}>
+                              {report.category.toUpperCase()}
+                            </span>
+                          </td>
+                          <td style={{ padding: '1.25rem 2rem', maxWidth: '250px' }}>
+                            <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {report.message}
+                            </div>
+                          </td>
+                          <td style={{ padding: '1.25rem 2rem' }}>
+                            <span style={{ padding: '0.35rem 0.85rem', borderRadius: '100px', fontSize: '0.7rem', fontWeight: 800, background: report.status === 'pending' ? '#fef2f2' : '#f0fdf4', color: report.status === 'pending' ? '#dc2626' : '#16a34a' }}>
+                              {report.status?.toUpperCase()}
+                            </span>
+                          </td>
+                          <td style={{ padding: '1.25rem 2rem', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                              {report.status === 'pending' && (
+                                <>
+                                  <button 
+                                    onClick={() => {
+                                      API.put(`/reports/${report._id}/status`, { status: 'reviewed' });
+                                      setReports(reports.map(r => r._id === report._id ? { ...r, status: 'reviewed' } : r));
+                                    }}
+                                    style={{ background: '#fef3c7', color: '#d97706', border: 'none', padding: '0.5rem 0.75rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                  >
+                                    Mark Reviewed
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      API.put(`/reports/${report._id}/status`, { status: 'resolved' });
+                                      setReports(reports.map(r => r._id === report._id ? { ...r, status: 'resolved' } : r));
+                                    }}
+                                    style={{ background: '#f0fdf4', color: '#16a34a', border: 'none', padding: '0.5rem 0.75rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                  >
+                                    Resolve
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {reports.length === 0 && (
+                    <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>No user reports found.</div>
                   )}
                 </div>
               </div>
