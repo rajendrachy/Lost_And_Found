@@ -159,20 +159,22 @@ userSchema.methods.getDailyLoginLimit = function() {
 
 userSchema.methods.canCreateItem = async function() {
     const limit = this.getDailyItemLimit();
-    if (limit >= PREMIUM_LIMIT) return { 
+    
+    // Admin or premium gets unlimited
+    if (this.role === 'admin' || limit >= PREMIUM_LIMIT) return { 
         can: true, 
-        remaining: PREMIUM_LIMIT,
+        remaining: 999,
         min: FREE_ITEM_MIN,
-        max: PREMIUM_LIMIT,
+        max: 999,
         isPremium: true,
-        plan: this.plan
+        plan: this.plan || 'premium'
     };
     
     const now = new Date();
-    if (!this.itemsCreatedDate || now.toDateString() !== this.itemsCreatedDate.toDateString()) {
-        this.itemsCreatedDate = now;
-        this.itemsCreatedToday = 0;
-        await this.save();
+    const isNewDay = !this.itemsCreatedDate || now.toDateString() !== this.itemsCreatedDate.toDateString();
+    
+    // Reset count for new day (don't save yet)
+    if (isNewDay) {
         return { 
             can: true, 
             remaining: FREE_ITEM_MAX,
@@ -221,20 +223,22 @@ userSchema.methods.recordItemCreated = async function() {
 
 userSchema.methods.canLoginToday = async function() {
     const limit = this.getDailyLoginLimit();
-    if (limit >= PREMIUM_LIMIT) return { 
+    
+    // Admin or premium gets unlimited
+    if (this.role === 'admin' || limit >= PREMIUM_LIMIT) return { 
         can: true, 
-        remaining: PREMIUM_LIMIT,
+        remaining: 999,
         min: FREE_LOGIN_MIN,
-        max: PREMIUM_LIMIT,
+        max: 999,
         isPremium: true,
-        plan: this.plan
+        plan: this.plan || 'premium'
     };
     
     const now = new Date();
-    if (!this.loginDate || now.toDateString() !== this.loginDate.toDateString()) {
-        this.loginDate = now;
-        this.loginCount = 0;
-        await this.save();
+    const isNewDay = !this.loginDate || now.toDateString() !== this.loginDate.toDateString();
+    
+    // Reset count for new day (don't save yet)
+    if (isNewDay) {
         return { 
             can: true, 
             remaining: FREE_LOGIN_MAX,
