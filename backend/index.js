@@ -15,10 +15,15 @@ app.use(helmet());
 app.use(morgan('dev'));
 
 // CORS configuration
+const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.trim() : null;
+const normalizedFrontendUrl = frontendUrl && !frontendUrl.startsWith('http') 
+    ? `https://${frontendUrl}` 
+    : frontendUrl;
+
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
-    process.env.FRONTEND_URL ? process.env.FRONTEND_URL.trim() : null
+    normalizedFrontendUrl
 ].filter(Boolean);
 
 app.use(cors({
