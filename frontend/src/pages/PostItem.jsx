@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Camera, MapPin, Calendar, Tag, FileText, Send, CheckCircle, Shield, Search, Activity, Star, Plus } from 'lucide-react';
 import API from '../api';
+import { useAuth } from '../context/AuthContext';
 
 const PostItem = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const fileRef = useRef();
   const [preview, setPreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +46,7 @@ const PostItem = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setSuccess(true);
-      setTimeout(() => navigate('/profile'), 8000);
+      setTimeout(() => navigate(user?.role === 'admin' ? '/admin' : '/profile'), 8000);
     } catch (err) {
       setError(err.response?.data?.msg || 'Failed to post item. Please try again.');
     } finally {
@@ -95,7 +97,9 @@ const PostItem = () => {
             </div>
 
             <div style={{ marginTop: '4rem' }}>
-               <button className="btn btn-primary btn-block btn-lg" onClick={() => navigate('/profile')}>Go to Dashboard</button>
+               <button className="btn btn-primary btn-block btn-lg" onClick={() => navigate(user?.role === 'admin' ? '/admin' : '/profile')}>
+                 {user?.role === 'admin' ? 'Go to Admin Panel' : 'Go to Dashboard'}
+               </button>
                <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700, marginTop: '1.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Redirecting in 8 seconds</p>
             </div>
           </motion.div>

@@ -32,6 +32,9 @@ exports.registerUser = async (req, res) => {
             rating: user.rating,
             reputationPoints: user.reputationPoints,
             totalResolved: user.totalResolved,
+            badges: user.badges,
+            currentStreak: user.currentStreak,
+            longestStreak: user.longestStreak,
             token: generateToken(user._id)
         });
     } catch (err) {
@@ -48,6 +51,10 @@ exports.loginUser = async (req, res) => {
     try {
         const user = await User.findOne({ email });
         if (user && (await user.comparePassword(password))) {
+            // Check and award any missing badges
+            user.checkAndAwardBadges();
+            await user.save();
+            
             res.json({
                 _id: user._id,
                 name: user.name,
@@ -58,6 +65,9 @@ exports.loginUser = async (req, res) => {
                 rating: user.rating,
                 reputationPoints: user.reputationPoints,
                 totalResolved: user.totalResolved,
+                badges: user.badges,
+                currentStreak: user.currentStreak,
+                longestStreak: user.longestStreak,
                 token: generateToken(user._id)
             });
         } else {
@@ -75,7 +85,28 @@ exports.getUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
         if (user) {
-            res.json(user);
+            // Check and award any missing badges for existing users
+            const newBadges = user.checkAndAwardBadges();
+            if (newBadges.length > 0) {
+                await user.save();
+            }
+            
+            res.json({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role,
+                avatar: user.avatar,
+                rating: user.rating,
+                reputationPoints: user.reputationPoints,
+                totalResolved: user.totalResolved,
+                badges: user.badges,
+                currentStreak: user.currentStreak,
+                longestStreak: user.longestStreak,
+                totalItemsPosted: user.totalItemsPosted,
+                totalClaimsSubmitted: user.totalClaimsSubmitted
+            });
         } else {
             res.status(404).json({ msg: 'User not found' });
         }
@@ -163,7 +194,31 @@ exports.changePassword = async (req, res) => {
         user.password = newPassword;
         await user.save();
 
-        res.json({ msg: 'Password updated successfully' });
+res.json({ msg: 'Password updated successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @desc    Sync badges for user
+// @route   POST api/auth/sync-badges
+// @access  Private
+exports.syncBadges = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+        
+        const newBadges = user.checkAndAwardBadges();
+        await user.save();
+        
+        res.json({
+            msg: 'Badges synced',
+            badges: user.badges,
+            newBadges
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

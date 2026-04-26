@@ -6,7 +6,7 @@ const User = require('../models/User');
 // Create a new item (Lost or Found)
 exports.createItem = async (req, res) => {
     try {
-        const { type, title, description, category, location, date } = req.body;
+        const { type, title, description, category, location, date, reward } = req.body;
 
         let imageUrl = '';
         if (req.file) {
@@ -27,7 +27,12 @@ exports.createItem = async (req, res) => {
             location,
             date,
             image: imageUrl,
-            poster: req.user.id
+            poster: req.user.id,
+            reward: type === 'found' ? {
+                amount: reward?.amount || 0,
+                currency: reward?.currency || 'NPR',
+                description: reward?.description || ''
+            } : undefined
         });
 
         const item = await newItem.save();
@@ -157,7 +162,7 @@ exports.getMyItems = async (req, res) => {
 // Owner confirms they got the item back from the founder
 exports.confirmRecovery = async (req, res) => {
     try {
-        const item = await Item.findById(req.params.id).populate('claims.user');
+        const item = await Item.findById(req.params.id).populate('claims.user').populate('returnedBy');
         if (!item) return res.status(404).json({ msg: 'Item not found' });
 
         const approvedClaim = item.claims.find(c => c.user._id.toString() === req.user.id && c.status === 'approved');
@@ -170,6 +175,7 @@ exports.confirmRecovery = async (req, res) => {
         }
 
         item.confirmedByOwner = true;
+        item.status = 'resolved';
         
         if (item.type === 'found') {
             item.returnedBy = item.poster; 
@@ -177,23 +183,56 @@ exports.confirmRecovery = async (req, res) => {
             item.returnedBy = approvedClaim.user._id;
         }
 
+        // Handle reward for found items
+        if (item.type === 'found' && item.reward?.amount > 0 && item.reward?.claimed === false) {
+            item.reward.claimed = true;
+            item.reward.claimedBy = approvedClaim.user._id;
+            item.reward.claimedAt = new Date();
+        }
+
         item.resolutionStory = req.body.story || `Successfully reunited ${item.title} with its owner.`;
         await item.save();
 
-        await Notification.create({
-            recipient: item.poster,
-            sender: req.user.id,
-            item: item._id,
-            type: 'handshake',
-            message: `Handshake complete! User confirmed they received ${item.title}. You've earned 500 Hero Points!`
-        });
+        // Notify the finder that reward is ready
+        if (item.type === 'found' && item.reward?.amount > 0) {
+            await Notification.create({
+                recipient: approvedClaim.user._id,
+                sender: item.poster,
+                item: item._id,
+                type: 'reward',
+                message: `🎉 Great news! The owner confirmed receiving ${item.title}. Your reward of ${item.reward.currency} ${item.reward.amount} is ready! Please contact the owner to receive it.`
+            });
+        }
 
-        const founder = await User.findById(item.poster);
-        if (founder) {
-            founder.reputationPoints += 500; 
-            founder.totalResolved += 1;
-            founder.rating = Math.min(10, Math.floor(founder.totalResolved / 1));
-            await founder.save();
+        // Award points and badges to the finder
+        const finder = await User.findById(item.poster);
+        if (finder) {
+            finder.reputationPoints += 500;
+            finder.totalResolved += 1;
+            finder.rating = Math.min(10, Math.floor(finder.totalResolved / 1));
+            
+            // Check for new badges
+            const newBadges = finder.checkAndAwardBadges();
+            await finder.save();
+
+            // Notify about new badges
+            for (const badge of newBadges) {
+                await Notification.create({
+                    recipient: finder._id,
+                    sender: item.poster,
+                    item: item._id,
+                    type: 'badge',
+                    message: `🏆 Congratulations! You earned the "${badge.name}" badge for resolving ${badge.threshold} items! ${badge.description}`
+                });
+            }
+
+            await Notification.create({
+                recipient: item.poster,
+                sender: req.user.id,
+                item: item._id,
+                type: 'handshake',
+                message: `Handshake complete! User confirmed they received ${item.title}. You've earned 500 Hero Points!`
+            });
         }
 
         res.json({ msg: 'Recovery confirmed! Thank you for helping build a trusted community.', item });

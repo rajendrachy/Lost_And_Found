@@ -14,6 +14,7 @@ import About from './pages/About';
 import Admin from './pages/Admin';
 import HelpCenter from './pages/HelpCenter';
 import NextStepPortal from './components/NextStepPortal';
+import WhyChoose from './pages/WhyChoose';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -35,6 +36,7 @@ function App() {
           <Route path="/explore" element={<Explore />} />
           <Route path="/safety" element={<Safety />} />
           <Route path="/about" element={<About />} />
+          <Route path="/why-choose" element={<WhyChoose />} />
           <Route path="/help" element={<HelpCenter />} />
           <Route path="/admin" element={
             <PrivateRoute>

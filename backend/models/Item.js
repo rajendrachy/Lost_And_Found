@@ -41,6 +41,14 @@ const itemSchema = new mongoose.Schema({
         enum: ['active', 'resolved'],
         default: 'active'
     },
+    reward: {
+        amount: { type: Number, default: 0 },
+        currency: { type: String, default: 'NPR' },
+        description: String,
+        claimed: { type: Boolean, default: false },
+        claimedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        claimedAt: Date
+    },
     claims: [{
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         message: String,

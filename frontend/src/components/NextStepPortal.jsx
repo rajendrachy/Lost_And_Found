@@ -18,6 +18,12 @@ const NextStepPortal = () => {
       return;
     }
 
+    // Don't show next step portal for admin users - they have their own dashboard
+    if (user.role === 'admin') {
+      setNextStep(null);
+      return;
+    }
+
     const determineNextStep = async () => {
       try {
         setLoading(true);

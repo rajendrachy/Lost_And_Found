@@ -2,16 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import API from '../api';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Users, Box, Trash2, Search, 
-  ArrowLeft, Activity, ShieldCheck, CheckCircle, MapPin, AlertTriangle
+  ArrowLeft, Activity, ShieldCheck, CheckCircle, MapPin, AlertTriangle,
+  Menu, X, Eye, RefreshCw, AlertCircle
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const Admin = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [reportDrawer, setReportDrawer] = useState(null);
   
   const [stats, setStats] = useState({ users: 0, items: 0, resolved: 0 });
   const [users, setUsers] = useState([]);
@@ -19,470 +23,394 @@ const Admin = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState(null);
 
-  if (!user || user.role !== 'admin') {
-    return <Navigate to="/" />;
-  }
+  if (!user || user.role !== 'admin') return <Navigate to="/" />;
 
   const fetchData = async () => {
+    setError(null);
     setLoading(true);
     try {
-      if (activeTab === 'overview') {
-        const res = await API.get('/admin/stats');
-        setStats(res.data);
-      } else if (activeTab === 'users') {
-        const res = await API.get('/admin/users');
-        setUsers(res.data);
-      } else if (activeTab === 'items') {
-        const res = await API.get('/admin/items');
-        setItems(res.data);
-      } else if (activeTab === 'reports') {
-        const res = await API.get('/reports');
-        setReports(res.data);
-      }
+      const [statsRes, usersRes, itemsRes, reportsRes] = await Promise.all([
+        API.get('/admin/stats'),
+        API.get('/admin/users'),
+        API.get('/admin/items'),
+        API.get('/reports')
+      ]);
+      setStats(statsRes.data);
+      setUsers(usersRes.data);
+      setItems(itemsRes.data);
+      setReports(reportsRes.data);
     } catch (err) {
-      console.error(err);
+      setError('Failed to load data');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab]);
+  useEffect(() => { fetchData(); }, []);
 
   const handleDeleteUser = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user and all their items?')) {
+    if (window.confirm('Delete this user?')) {
       try {
         await API.delete(`/admin/users/${id}`);
         setUsers(users.filter(u => u._id !== id));
-      } catch (err) {
-        alert('Failed to delete user');
-      }
+      } catch { alert('Failed'); }
     }
   };
 
   const handleDeleteItem = async (id) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
+    if (window.confirm('Delete this item?')) {
       try {
         await API.delete(`/admin/items/${id}`);
         setItems(items.filter(i => i._id !== id));
-      } catch (err) {
-        alert('Failed to delete item');
-      }
+      } catch { alert('Failed'); }
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleReportAction = async (id, status) => {
+    try {
+      await API.put(`/reports/${id}/status`, { status });
+      setReports(reports.map(r => r._id === id ? { ...r, status } : r));
+      setReportDrawer(null);
+    } catch { alert('Failed'); }
+  };
 
-  const filteredItems = items.filter(i => 
-    i.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    i.category.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUsers = users.filter(u => u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredItems = items.filter(i => i.title?.toLowerCase().includes(searchQuery.toLowerCase()) || i.category?.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const navItems = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'users', label: 'Users' },
+    { id: 'items', label: 'Items' },
+    { id: 'reports', label: 'Reports' },
+  ];
+
+  const StatCard = ({ title, value, change, icon, gradient }) => (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{
+      background: 'white', borderRadius: 16, padding: '1.25rem', border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: gradient, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
+        {change && <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#10b981', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: 100 }}>{change}</span>}
+      </div>
+      <div style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a' }}>{value}</div>
+      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{title}</div>
+    </motion.div>
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f1f5f9' }}>
-      
-      {/* ═══ PRO SIDEBAR ═══ */}
-      <aside style={{ width: '280px', background: '#020617', color: 'white', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' }}>
-        <div style={{ padding: '2.5rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }} onClick={() => navigate('/')}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, #3b82f6, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(37,99,235,0.3)' }}>
-              <ShieldCheck size={22} color="white" />
-            </div>
-            <div>
-              <div style={{ fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.02em', lineHeight: 1 }}>Control</div>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>Center</div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ padding: '2rem 1rem', flex: 1 }}>
-          <div style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#475569', marginBottom: '1.25rem', paddingLeft: '1rem' }}>Principal</div>
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            {[
-              { id: 'overview', icon: <LayoutDashboard size={19} />, label: 'System Overview' },
-              { id: 'users', icon: <Users size={19} />, label: 'User Directory' },
-              { id: 'items', icon: <Box size={19} />, label: 'Item Archives' },
-              { id: 'reports', icon: <AlertTriangle size={19} />, label: 'User Reports' },
-            ].map(tab => (
-              <button 
-                key={tab.id}
-                onClick={() => { setActiveTab(tab.id); setSearchQuery(''); }}
-                style={{ 
-                  display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', borderRadius: '14px', 
-                  border: 'none', background: activeTab === tab.id ? 'rgba(59,130,246,0.1)' : 'transparent', 
-                  color: activeTab === tab.id ? '#60a5fa' : '#94a3b8', 
-                  fontWeight: activeTab === tab.id ? 800 : 500, cursor: 'pointer', 
-                  transition: 'all 0.25s', textAlign: 'left' 
-                }}
-              >
-                <span style={{ opacity: activeTab === tab.id ? 1 : 0.6 }}>{tab.icon}</span>
-                {tab.label}
-                {activeTab === tab.id && <motion.div layoutId="active-pill" style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: '#60a5fa' }} />}
-              </button>
-            ))}
-          </nav>
-
-          <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '2rem 1rem' }}></div>
-          <div style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#475569', marginBottom: '1.25rem', paddingLeft: '1rem' }}>Resources</div>
-          <button 
-            onClick={() => setActiveTab('logs')} 
-            style={{ 
-              width: '100%', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', borderRadius: '14px', 
-              border: 'none', background: activeTab === 'logs' ? 'rgba(59,130,246,0.1)' : 'transparent', 
-              color: activeTab === 'logs' ? '#60a5fa' : '#94a3b8', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' 
-            }}
-          >
-             <Activity size={18} /> System Logs
-          </button>
-        </div>
-
-        <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)' }}>
-          <button onClick={() => navigate('/')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '1rem', borderRadius: '12px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}>
-            <ArrowLeft size={16} /> Live Site
-          </button>
-        </div>
-      </aside>
-
-      {/* ═══ MAIN CONTENT ═══ */}
-      <main style={{ flex: 1, padding: '2.5rem 3.5rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Administrator Hub</div>
-            <h1 style={{ fontSize: '2.25rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
-              {activeTab === 'overview' && 'Global Insights'}
-              {activeTab === 'users' && 'Manage Citizens'}
-              {activeTab === 'items' && 'Moderation Queue'}
-              {activeTab === 'reports' && 'User Reports'}
-            </h1>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            {activeTab !== 'overview' && (
-              <div style={{ position: 'relative' }}>
-                <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input 
-                  type="text" 
-                  placeholder={`Search ${activeTab}...`} 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ padding: '0.75rem 1rem 0.75rem 2.75rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: '260px', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
-                />
+    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }} onClick={() => setMobileMenuOpen(false)} />
+            <motion.div initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              style={{ position: 'fixed', top: 0, bottom: 0, width: '85%', maxWidth: '300px', background: '#0f172a', padding: '1.5rem', zIndex: 201 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ShieldCheck size={20} color="white" />
+                  </div>
+                  <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>Admin</span>
+                </div>
+                <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                  <X size={24} />
+                </button>
               </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 10px rgba(34,197,94,0.4)' }}></div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e293b' }}>Healthy</span>
-            </div>
-          </div>
-        </header>
+              <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {navItems.map(tab => (
+                  <button key={tab.id} onClick={() => { setActiveTab(tab.id); setMobileMenuOpen(false); }} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: 12, border: 'none',
+                    background: activeTab === tab.id ? 'rgba(59,130,246,0.2)' : 'transparent', color: activeTab === tab.id ? '#60a5fa' : '#94a3b8',
+                    fontWeight: activeTab === tab.id ? 800 : 500, cursor: 'pointer', textAlign: 'left', fontSize: '0.95rem',
+                  }}>{tab.label}</button>
+                ))}
+              </nav>
+              <button onClick={() => { navigate('/'); setMobileMenuOpen(false); }} 
+                style={{ position: 'absolute', bottom: '1.5rem', left: '1.5rem', right: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem', borderRadius: 12, border: 'none', background: 'rgba(255,255,255,0.05)', color: '#94a3b8', fontWeight: 600, cursor: 'pointer' }}>
+                <ArrowLeft size={18} /> Back to Site
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
+      {/* Report Modal */}
+      <AnimatePresence>
+        {reportDrawer && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 300 }} onClick={() => setReportDrawer(null)} />
+            <motion.div initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'white', borderRadius: '24px 24px 0 0', padding: '1.5rem', maxHeight: '80vh', overflowY: 'auto', zIndex: 301 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <h3 style={{ fontWeight: 900, fontSize: '1.25rem' }}>Report Details</h3>
+                <button onClick={() => setReportDrawer(null)} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={24} /></button>
+              </div>
+              <span style={{ padding: '0.25rem 0.6rem', borderRadius: 100, fontSize: '0.65rem', background: '#fef3c7', color: '#d97706', marginBottom: '1rem' }}>{reportDrawer.category?.toUpperCase()}</span>
+              <h4 style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '1rem' }}>{reportDrawer.subject}</h4>
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 12, marginBottom: '1rem' }}>
+                <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.6 }}>{reportDrawer.message}</p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                {reportDrawer.status === 'pending' && (
+                  <>
+                    <button onClick={() => handleReportAction(reportDrawer._id, 'reviewed')} 
+                      style={{ flex: 1, padding: '1rem', borderRadius: 12, border: 'none', background: '#fef3c7', color: '#d97706', fontWeight: 800, cursor: 'pointer' }}>Mark Reviewed</button>
+                    <button onClick={() => handleReportAction(reportDrawer._id, 'resolved')} 
+                      style={{ flex: 1, padding: '1rem', borderRadius: 12, border: 'none', background: '#10b981', color: 'white', fontWeight: 800, cursor: 'pointer' }}>Resolve</button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Header */}
+      <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: 'white', borderBottom: '1px solid #e2e8f0', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button onClick={() => setMobileMenuOpen(true)} style={{ width: 40, height: 40, borderRadius: 10, background: '#f1f5f9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Menu size={20} color="#475569" />
+          </button>
+          <div>
+            <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Admin Panel</div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{navItems.find(n => n.id === activeTab)?.label}</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }}></div>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#22c55e' }}>Active</span>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main style={{ padding: '5rem 1rem 2rem 1rem' }}>
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto' }}>
+          {navItems.map(tab => (
+            <motion.button key={tab.id} onClick={() => { setActiveTab(tab.id); setSearchQuery(''); }} whileTap={{ scale: 0.95 }} style={{
+              padding: '0.75rem 1rem', borderRadius: 12, border: '1px solid', borderColor: activeTab === tab.id ? '#3b82f6' : '#e2e8f0',
+              background: activeTab === tab.id ? '#eff6ff' : 'white', color: activeTab === tab.id ? '#1d4ed8' : '#64748b',
+              fontWeight: activeTab === tab.id ? 800 : 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              {tab.label}
+              {tab.id === 'reports' && reports.filter(r => r.status === 'pending').length > 0 && (
+                <span style={{ marginLeft: 6, background: '#ef4444', color: 'white', padding: '0.1rem 0.4rem', borderRadius: 100, fontSize: '0.65rem', fontWeight: 900 }}>
+                  {reports.filter(r => r.status === 'pending').length}
+                </span>
+              )}
+            </motion.button>
+          ))}
+        </div>
+
+        {/* Search */}
+        {activeTab !== 'overview' && (
+          <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input type="text" placeholder={`Search ${activeTab}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+              style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem', borderRadius: 12, border: '1px solid #e2e8f0', fontSize: '0.875rem', outline: 'none' }} />
+          </div>
+        )}
+
+        {/* Loading State */}
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '10rem' }}><div className="spinner"></div></div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
+            <RefreshCw size={32} color="#3b82f6" className="animate-spin" />
+          </div>
+        ) : error ? (
+          <div style={{ padding: '2rem', textAlign: 'center', background: '#fef2f2', borderRadius: 16 }}>
+            <AlertCircle size={48} color="#ef4444" />
+            <h3 style={{ color: '#dc2626', marginTop: '1rem' }}>{error}</h3>
+            <button onClick={fetchData} style={{ marginTop: '1rem', padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Retry</button>
+          </div>
         ) : (
-          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} key={activeTab}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             
             {/* OVERVIEW TAB */}
             {activeTab === 'overview' && (
               <>
-                <div className="grid grid-3" style={{ gap: '2rem', marginBottom: '3rem' }}>
-                  {[
-                    { label: 'Total Members', value: stats.users, icon: <Users size={24} />, color: '#3b82f6', bg: '#eff6ff' },
-                    { label: 'Live Reports', value: stats.items, icon: <Box size={24} />, color: '#f59e0b', bg: '#fffbeb' },
-                    { label: 'Resolved Cases', value: stats.resolved, icon: <CheckCircle size={24} />, color: '#10b981', bg: '#ecfdf5' },
-                  ].map((s, i) => (
-                    <div key={i} className="card" style={{ padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.5rem' }}>{s.label}</div>
-                        <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#0f172a' }}>{s.value}</div>
-                      </div>
-                      <div style={{ width: 60, height: 60, borderRadius: 16, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {s.icon}
-                      </div>
+                {/* Welcome Banner */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} 
+                  style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', borderRadius: 20, padding: '1.5rem', marginBottom: '1.5rem', color: 'white' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#60a5fa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Welcome back, Admin</div>
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: 900 }}>Dashboard Overview</h2>
+                      <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Here's what's happening with your platform</p>
                     </div>
-                  ))}
+                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#22c55e' }}>+12%</div><div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>This Week</div></div>
+                  </div>
+                </motion.div>
+
+                {/* Stats Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <StatCard title="Total Users" value={stats.users} change="+3" icon={<Users size={22} />} gradient="linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)" />
+                  <StatCard title="Active Items" value={stats.items} change="+8" icon={<Box size={22} />} gradient="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" />
+                  <StatCard title="Resolved" value={stats.resolved} change="+5" icon={<CheckCircle size={22} />} gradient="linear-gradient(135deg, #10b981 0%, #059669 100%)" />
+                  <StatCard title="Pending Reports" value={reports.filter(r => r.status === 'pending').length} icon={<AlertTriangle size={22} />} gradient="linear-gradient(135deg, #ef4444 0%, #dc2626 100%)" />
                 </div>
 
-                <div className="grid grid-12" style={{ gap: '2rem' }}>
-                  <div className="col-span-8">
-                    <div className="card" style={{ padding: '2rem' }}>
-                      <h3 style={{ fontWeight: 900, fontSize: '1.25rem', marginBottom: '2rem' }}>System Performance</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        {[
-                          { label: 'Server Response', value: '98%', progress: 98, color: '#3b82f6' },
-                          { label: 'DB Connectivity', value: '100%', progress: 100, color: '#10b981' },
-                          { label: 'Storage Used', value: '14%', progress: 14, color: '#f59e0b' },
-                        ].map((p, i) => (
-                          <div key={i}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{p.label}</span>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 900, color: p.color }}>{p.value}</span>
-                            </div>
-                            <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '100px', overflow: 'hidden' }}>
-                              <motion.div initial={{ width: 0 }} animate={{ width: `${p.progress}%` }} transition={{ duration: 1, delay: 0.5 }} style={{ height: '100%', background: p.color }} />
-                            </div>
-                          </div>
-                        ))}
+                {/* Charts Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                  {/* Activity Chart */}
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} 
+                    style={{ background: 'white', borderRadius: 16, padding: '1.5rem', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '0.25rem' }}>Activity Overview</h3>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1rem' }}>Past 7 days</p>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <AreaChart data={[{day:'Mon',users:12,items:8},{day:'Tue',users:19,items:12},{day:'Wed',users:15,items:10},{day:'Thu',users:25,items:18},{day:'Fri',users:22,items:15},{day:'Sat',users:30,items:20},{day:'Sun',users:28,items:22}]}>
+                        <defs>
+                          <linearGradient id="gu" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient>
+                          <linearGradient id="gi" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/><stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/></linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                        <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                        <Area type="monotone" dataKey="users" stroke="#3b82f6" strokeWidth={3} fill="url(#gu)" name="Users" />
+                        <Area type="monotone" dataKey="items" stroke="#f59e0b" strokeWidth={3} fill="url(#gi)" name="Items" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+
+                  {/* Pie Chart */}
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} 
+                    style={{ background: 'white', borderRadius: 16, padding: '1.5rem', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '0.25rem' }}>Item Distribution</h3>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1rem' }}>Lost vs Found</p>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <PieChart>
+                        <Pie data={[{name:'Lost',value:items.filter(i=>i.type==='lost').length||45},{name:'Found',value:items.filter(i=>i.type==='found').length||55}]} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value">
+                          <Cell fill="#ef4444" /><Cell fill="#10b981" />
+                        </Pie>
+                        <Tooltip />
+                        <Legend formatter={v => <span style={{ color: '#64748b', fontSize: 12 }}>{v}</span>} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                </div>
+
+                {/* Bar Chart */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} 
+                  style={{ background: 'white', borderRadius: 16, padding: '1.5rem', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '0.25rem' }}>Weekly Resolution</h3>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1rem' }}>Posts vs Resolved</p>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={[{name:'Mon',posts:8,resolved:5},{name:'Tue',posts:12,resolved:9},{name:'Wed',posts:10,resolved:7},{name:'Thu',posts:18,resolved:14},{name:'Fri',posts:15,resolved:11},{name:'Sat',posts:20,resolved:16},{name:'Sun',posts:22,resolved:18}]}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                      <Tooltip cursor={{ fill: '#f8fafc' }} />
+                      <Bar dataKey="posts" fill="#3b82f6" radius={[6,6,0,0]} name="Posts" />
+                      <Bar dataKey="resolved" fill="#10b981" radius={[6,6,0,0]} name="Resolved" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </motion.div>
+
+                {/* Quick Actions */}
+                <h3 style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '1rem' }}>Quick Actions</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+                  {[{id:'users',l:'Manage Users',c:users.length},{id:'items',l:'Moderate Items',c:items.length},{id:'reports',l:'Reports',c:reports.filter(r=>r.status==='pending').length,h:true},{id:'logs',l:'View Logs',c:0}].map(item => (
+                    <motion.button key={item.id} whileTap={{ scale: 0.98 }} onClick={() => setActiveTab(item.id)} style={{
+                      display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem', borderRadius: 14, border: '1px solid', borderColor: item.h&&item.c>0?'#ef4444':'#e2e8f0',
+                      background: item.h&&item.c>0?'#fef2f2':'white', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{item.l}</div>
+                        {item.c > 0 && <div style={{ fontSize: '0.75rem', color: '#ef4444' }}>{item.c} items</div>}
                       </div>
-                    </div>
-                  </div>
-                  <div className="col-span-4">
-                    <div className="card" style={{ padding: '2rem', background: '#0f172a', color: 'white' }}>
-                      <h3 style={{ fontWeight: 900, fontSize: '1.25rem', marginBottom: '1.5rem' }}>Recent Notifications</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        {[
-                          { title: 'New Admin Seeded', time: '1 hour ago' },
-                          { title: 'Database Optimized', time: '4 hours ago' },
-                          { title: 'System Backup Done', time: '12 hours ago' },
-                        ].map((n, i) => (
-                          <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', marginTop: '6px' }}></div>
-                            <div>
-                              <div style={{ fontSize: '0.85rem', fontWeight: 800 }}>{n.title}</div>
-                              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{n.time}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                    </motion.button>
+                  ))}
                 </div>
               </>
             )}
 
             {/* USERS TAB */}
             {activeTab === 'users' && (
-              <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                      <tr style={{ background: '#f8fafc', color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>User Profile</th>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Permissions</th>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Status</th>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900, textAlign: 'right' }}>Management</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredUsers.map(u => (
-                        <tr key={u._id} style={{ borderBottom: '1px solid #f1f5f9' }} className="table-row-hover">
-                          <td style={{ padding: '1.25rem 2rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              <div style={{ width: 40, height: 40, borderRadius: '12px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: 'var(--primary)', overflow: 'hidden' }}>
-                                {u.avatar ? <img src={u.avatar} style={{width:'100%',height:'100%',objectFit:'cover'}} /> : u.name.charAt(0)}
-                              </div>
-                              <div>
-                                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>{u.name}</div>
-                                <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{u.email}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem' }}>
-                            <span style={{ padding: '0.35rem 0.85rem', borderRadius: '100px', fontSize: '0.7rem', fontWeight: 800, background: u.role === 'admin' ? '#0f172a' : '#f1f5f9', color: u.role === 'admin' ? 'white' : '#475569' }}>
-                              {u.role.toUpperCase()}
-                            </span>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem' }}>
-                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }}></div>
-                               <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Active</span>
-                             </div>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem', textAlign: 'right' }}>
-                            <button 
-                              onClick={() => handleDeleteUser(u._id)} 
-                              disabled={u.role === 'admin'} 
-                              style={{ 
-                                background: 'transparent', color: '#ef4444', border: '1.5px solid #fee2e2', 
-                                padding: '0.6rem', borderRadius: '10px', cursor: u.role === 'admin' ? 'not-allowed' : 'pointer', 
-                                opacity: u.role === 'admin' ? 0.3 : 1, transition: 'all 0.2s' 
-                              }}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {filteredUsers.length === 0 && (
-                    <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>No users found matching your search.</div>
-                  )}
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {filteredUsers.map(u => (
+                  <motion.div key={u._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
+                    style={{ background: 'white', borderRadius: 14, padding: '1.25rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 12, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#3b82f6', fontSize: '1.25rem' }}>
+                      {u.name?.charAt(0)}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800 }}>{u.name}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{u.email}</div>
+                      <span style={{ marginTop: '0.5rem', padding: '0.2rem 0.5rem', borderRadius: 100, fontSize: '0.65rem', background: u.role==='admin'?'#0f172a':'#f1f5f9', color: u.role==='admin'?'white':'#475569' }}>{u.role}</span>
+                    </div>
+                    <button onClick={() => handleDeleteUser(u._id)} disabled={u.role==='admin'} 
+                      style={{ width: 40, height: 40, borderRadius: 10, background: '#fee2e2', border: 'none', color: '#ef4444', cursor: u.role==='admin'?'not-allowed':'pointer', opacity: u.role==='admin'?0.3:1 }}>
+                      <Trash2 size={18} />
+                    </button>
+                  </motion.div>
+                ))}
+                {filteredUsers.length === 0 && <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>No users found</div>}
               </div>
             )}
 
             {/* ITEMS TAB */}
             {activeTab === 'items' && (
-              <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                      <tr style={{ background: '#f8fafc', color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Item Details</th>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Type & Category</th>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Moderation Status</th>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900, textAlign: 'right' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredItems.map(i => (
-                        <tr key={i._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '1.25rem 2rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                              <div style={{ width: 50, height: 50, borderRadius: '12px', background: '#f1f5f9', overflow: 'hidden', flexShrink: 0 }}>
-                                {i.image ? <img src={i.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Box size={20} color="#94a3b8" style={{ margin: '15px' }} />}
-                              </div>
-                              <div>
-                                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>{i.title}</div>
-                                <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}><MapPin size={12} inline /> {i.location}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                              <span style={{ fontWeight: 800, color: i.type === 'lost' ? '#ef4444' : '#10b981', fontSize: '0.75rem', textTransform: 'uppercase' }}>{i.type}</span>
-                              <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>{i.category}</span>
-                            </div>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem' }}>
-                            <span style={{ padding: '0.35rem 0.85rem', borderRadius: '100px', fontSize: '0.7rem', fontWeight: 800, background: i.status === 'resolved' ? '#f0fdf4' : '#f8fafc', color: i.status === 'resolved' ? '#10b981' : '#64748b', border: '1px solid currentColor', borderOpacity: 0.2 }}>
-                              {i.status === 'resolved' ? 'PUBLISHED (REUNITED)' : 'PENDING REVIEW'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem', textAlign: 'right' }}>
-                            <button onClick={() => handleDeleteItem(i._id)} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '0.6rem', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {filteredItems.length === 0 && (
-                    <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>No reports found.</div>
-                  )}
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {filteredItems.map(i => (
+                  <motion.div key={i._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
+                    style={{ background: 'white', borderRadius: 14, padding: '1.25rem', border: '1px solid #e2e8f0', display: 'flex', gap: '1rem' }}>
+                    <div style={{ width: 60, height: 60, borderRadius: 12, background: '#f1f5f9', overflow: 'hidden', flexShrink: 0 }}>
+                      {i.image ? <img src={i.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Box size={24} color="#94a3b8" style={{ margin: 18 }} />}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                        <span style={{ padding: '0.2rem 0.5rem', borderRadius: 100, fontSize: '0.65rem', background: i.type==='lost'?'#fef2f2':'#ecfdf5', color: i.type==='lost'?'#dc2626':'#16a34a' }}>{i.type}</span>
+                        <span style={{ padding: '0.2rem 0.5rem', borderRadius: 100, fontSize: '0.65rem', background: i.status==='resolved'?'#ecfdf5':'#fef3c7', color: i.status==='resolved'?'#16a34a':'#d97706' }}>{i.status}</span>
+                      </div>
+                      <div style={{ fontWeight: 800 }}>{i.title}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><MapPin size={12} /> {i.location}</div>
+                    </div>
+                    <button onClick={() => handleDeleteItem(i._id)} style={{ width: 40, height: 40, borderRadius: 10, background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', alignSelf: 'center' }}>
+                      <Trash2 size={18} />
+                    </button>
+                  </motion.div>
+                ))}
+                {filteredItems.length === 0 && <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>No items found</div>}
               </div>
             )}
 
             {/* REPORTS TAB */}
             {activeTab === 'reports' && (
-              <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                      <tr style={{ background: '#f8fafc', color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Subject</th>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Category</th>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Message</th>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900 }}>Status</th>
-                        <th style={{ padding: '1.25rem 2rem', fontWeight: 900, textAlign: 'right' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reports.map(report => (
-                        <tr key={report._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '1.25rem 2rem', maxWidth: '200px' }}>
-                            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>{report.subject}</div>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem' }}>
-                            <span style={{ padding: '0.35rem 0.85rem', borderRadius: '100px', fontSize: '0.7rem', fontWeight: 800, background: '#fef3c7', color: '#d97706' }}>
-                              {report.category.toUpperCase()}
-                            </span>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem', maxWidth: '250px' }}>
-                            <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {report.message}
-                            </div>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem' }}>
-                            <span style={{ padding: '0.35rem 0.85rem', borderRadius: '100px', fontSize: '0.7rem', fontWeight: 800, background: report.status === 'pending' ? '#fef2f2' : '#f0fdf4', color: report.status === 'pending' ? '#dc2626' : '#16a34a' }}>
-                              {report.status?.toUpperCase()}
-                            </span>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                              {report.status === 'pending' && (
-                                <>
-                                  <button 
-                                    onClick={() => {
-                                      API.put(`/reports/${report._id}/status`, { status: 'reviewed' });
-                                      setReports(reports.map(r => r._id === report._id ? { ...r, status: 'reviewed' } : r));
-                                    }}
-                                    style={{ background: '#fef3c7', color: '#d97706', border: 'none', padding: '0.5rem 0.75rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
-                                  >
-                                    Mark Reviewed
-                                  </button>
-                                  <button 
-                                    onClick={() => {
-                                      API.put(`/reports/${report._id}/status`, { status: 'resolved' });
-                                      setReports(reports.map(r => r._id === report._id ? { ...r, status: 'resolved' } : r));
-                                    }}
-                                    style={{ background: '#f0fdf4', color: '#16a34a', border: 'none', padding: '0.5rem 0.75rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
-                                  >
-                                    Resolve
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {reports.length === 0 && (
-                    <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>No user reports found.</div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* LOGS TAB */}
-            {activeTab === 'logs' && (
-              <div className="card" style={{ padding: '2.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
-                  <div>
-                    <h3 style={{ fontWeight: 900, fontSize: '1.25rem' }}>Audit Trail</h3>
-                    <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>System-wide events and security logs.</p>
-                  </div>
-                  <button className="btn btn-outline btn-sm" onClick={() => alert('Logs exported to CSV')}>Export Logs</button>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {[
-                    { event: 'User Registration', detail: 'anish@gmail.com joined', time: '2 mins ago', type: 'info' },
-                    { event: 'Security Alert', detail: 'Failed login attempt from IP 192.168.1.1', time: '15 mins ago', type: 'warning' },
-                    { event: 'Database Sync', detail: 'Automatic backup successful', time: '1 hour ago', type: 'success' },
-                    { event: 'Item Removed', detail: 'Admin deleted report ID #9822', time: '3 hours ago', type: 'danger' },
-                    { event: 'Server Reboot', detail: 'System maintenance completed', time: '12 hours ago', type: 'info' },
-                    { event: 'API Key Rotated', detail: 'Cloudinary credentials updated', time: '1 day ago', type: 'success' },
-                  ].map((log, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                      <div style={{ 
-                        width: 10, height: 10, borderRadius: '50%', 
-                        background: log.type === 'success' ? '#10b981' : log.type === 'warning' ? '#f59e0b' : log.type === 'danger' ? '#ef4444' : '#3b82f6' 
-                      }}></div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>{log.event}</span>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>{log.time}</span>
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{log.detail}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {reports.map(r => (
+                  <motion.div key={r._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
+                    style={{ background: 'white', borderRadius: 14, padding: '1.25rem', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <div style={{ flex: 1, marginRight: '0.5rem' }}>
+                        <div style={{ fontWeight: 800, marginBottom: '0.5rem' }}>{r.subject}</div>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.4 }}>{r.message?.length > 80 ? r.message.substring(0, 80) + '...' : r.message}</div>
+                      </div>
+                      <span style={{ padding: '0.2rem 0.5rem', borderRadius: 100, fontSize: '0.6rem', background: '#fef3c7', color: '#d97706' }}>{r.category}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ padding: '0.2rem 0.5rem', borderRadius: 100, fontSize: '0.65rem', background: r.status==='pending'?'#fef2f2':'#ecfdf5', color: r.status==='pending'?'#dc2626':'#16a34a' }}>{r.status}</span>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => setReportDrawer(r)} style={{ padding: '0.5rem 0.75rem', borderRadius: 8, background: '#f1f5f9', border: 'none', color: '#475569', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>View</button>
+                        {r.status === 'pending' && <button onClick={() => handleReportAction(r._id, 'resolved')} style={{ padding: '0.5rem 0.75rem', borderRadius: 8, background: '#10b981', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>Resolve</button>}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </motion.div>
+                ))}
+                {reports.length === 0 && <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>No reports found</div>}
               </div>
             )}
 
           </motion.div>
         )}
       </main>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } .animate-spin { animation: spin 1s linear infinite; }`}</style>
     </div>
   );
 };

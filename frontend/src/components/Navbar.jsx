@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, PlusCircle, User, LogOut, ShieldCheck, LayoutDashboard, Package, Bell, Menu, X, Home, Info } from 'lucide-react';
+import { Search, PlusCircle, User, LogOut, ShieldCheck, LayoutDashboard, Package, Bell, Menu, X, Home, Info, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -71,6 +71,7 @@ const Navbar = () => {
           <Link to="/">Home</Link>
           <Link to="/explore">Explore Items</Link>
           <Link to="/safety">Safety Tips</Link>
+          <Link to="/why-choose">Why Choose Us</Link>
           <Link to="/about">About Us</Link>
         </div>
 
@@ -158,16 +159,16 @@ const Navbar = () => {
                       </div>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <button className="dropdown-item" onClick={() => navigate('/profile')}>
-                          <LayoutDashboard size={16} /> My Dashboard
-                        </button>
-                        <button className="dropdown-item" onClick={() => navigate('/post')}>
-                          <Package size={16} /> Report Item
-                        </button>
-                        <button className="dropdown-item" onClick={handleLogout} style={{ color: '#ef4444' }}>
-                          <LogOut size={16} /> Logout
-                        </button>
-                      </div>
+                          <button className="dropdown-item" onClick={() => navigate(user.role === 'admin' ? '/admin' : '/profile')}>
+                            <LayoutDashboard size={16} /> {user.role === 'admin' ? 'Admin Panel' : 'My Dashboard'}
+                          </button>
+                          <button className="dropdown-item" onClick={() => navigate('/post')}>
+                            <Package size={16} /> Report Item
+                          </button>
+                          <button className="dropdown-item" onClick={handleLogout} style={{ color: '#ef4444' }}>
+                            <LogOut size={16} /> Logout
+                          </button>
+                        </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -198,6 +199,9 @@ const Navbar = () => {
               </button>
               <button className="mobile-nav-link" onClick={() => { navigate('/safety'); setShowMobileMenu(false); }}>
                 <ShieldCheck size={18} /> Safety Tips
+              </button>
+              <button className="mobile-nav-link" onClick={() => { navigate('/why-choose'); setShowMobileMenu(false); }}>
+                <Star size={18} /> Why Choose Us
               </button>
               <button className="mobile-nav-link" onClick={() => { navigate('/about'); setShowMobileMenu(false); }}>
                 <Info size={18} /> About Us

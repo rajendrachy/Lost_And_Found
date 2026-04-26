@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { 
   User, Mail, Phone, LogOut, Package, CheckCircle, 
-  Clock, Trash2, Activity, Shield, Box, FileText, Copy
+  Clock, Trash2, Activity, Shield, Box, FileText, Copy, Award, Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -286,13 +286,23 @@ const Profile = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this report?')) return;
     try {
       await API.delete(`/items/${id}`);
       setItems(items.filter(i => i._id !== id));
     } catch (err) {
-      alert('Failed to delete item');
+      alert('Delete failed');
+    }
+  };
+
+  const syncBadges = async () => {
+    try {
+      await API.post('/auth/sync-badges');
+      await refreshUser();
+      alert('Badges synced!');
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -378,22 +388,72 @@ const Profile = () => {
           {/* LEFT CONTENT */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
              {/* STATS */}
-             <div className="card" style={{ padding: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                   <h3 style={{ fontSize: '1.1rem', fontWeight: 900 }}>Community Impact</h3>
-                   <div style={{ padding: '0.4rem 0.8rem', background: '#f0f9ff', color: '#0369a1', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800 }}>Level {(user?.rating || 0) > 5 ? 'Veteran' : 'Rookie'}</div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                   <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: '20px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a' }}>{user?.reputationPoints || 0}</div>
-                      <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Hero Points</div>
+<div className="card" style={{ padding: '2rem' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 900 }}>Community Impact</h3>
+                    <div style={{ padding: '0.4rem 0.8rem', background: '#f0f9ff', color: '#0369a1', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800 }}>Level {(user?.rating || 0) > 5 ? 'Veteran' : 'Rookie'}</div>
+                 </div>
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: '20px', textAlign: 'center' }}>
+                       <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a' }}>{user?.reputationPoints || 0}</div>
+                       <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Hero Points</div>
+                    </div>
+                    <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: '20px', textAlign: 'center' }}>
+                       <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a' }}>{user?.totalResolved || 0}</div>
+                       <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Resolved</div>
+                    </div>
+                 </div>
+                 
+                 {/* BADGES */}
+                 {user?.badges && user.badges.length > 0 && (
+                   <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '1rem' }}>Your Badges</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                         {user.badges.map((badge, idx) => (
+                           <div key={idx} style={{ 
+                             padding: '0.6rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                             background: badge.type === 'bronze' ? '#fef3c7' : badge.type === 'silver' ? '#f1f5f9' : badge.type === 'gold' ? '#fef9c2' : badge.type === 'platinum' ? '#e0e7ff' : '#fdf4ff',
+                             border: `1px solid ${badge.type === 'bronze' ? '#fcd34d' : badge.type === 'silver' ? '#cbd5e1' : badge.type === 'gold' ? '#facc15' : badge.type === 'platinum' ? '#a5b4fc' : '#c4b5fd'}`
+                           }}>
+                              <Trophy size={14} color={badge.type === 'bronze' ? '#b45309' : badge.type === 'silver' ? '#64748b' : badge.type === 'gold' ? '#ca8a04' : badge.type === 'platinum' ? '#4f46e5' : '#9333ea'} />
+                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>{badge.name}</span>
+                           </div>
+                         ))}
+                      </div>
                    </div>
-                   <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: '20px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a' }}>{user?.totalResolved || 0}</div>
-                      <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Resolved</div>
+                 )}
+                 
+                 {/* BADGE PROGRESS */}
+                 {(!user?.badges || user.badges.length === 0) && (
+                   <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '1rem' }}>Badge Progress</div>
+                      <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px', textAlign: 'center' }}>
+                         <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b', marginBottom: '0.5rem' }}>
+                            Resolve {Math.max(0, 5 - (user?.totalResolved || 0))} more items to earn your first badge!
+                         </div>
+                         <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ 
+                              height: '100%', 
+                              width: `${Math.min(100, ((user?.totalResolved || 0) / 5) * 100)}%`,
+                              background: 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+                              borderRadius: '4px',
+                              transition: 'width 0.3s'
+                            }}></div>
+                         </div>
+                         <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', marginTop: '0.5rem' }}>
+                            {user?.totalResolved || 0} / 5 to next badge
+                         </div>
+                      </div>
+                      <button 
+                        onClick={syncBadges} 
+                        className="btn btn-outline btn-sm" 
+                        style={{ marginTop: '1rem', width: '100%' }}
+                      >
+                        Sync Badges
+                      </button>
                    </div>
-                </div>
-             </div>
+                 )}
+              </div>
 
              {/* NAVIGATION */}
              <div className="card" style={{ padding: '1rem' }}>
