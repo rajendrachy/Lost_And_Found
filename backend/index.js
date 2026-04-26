@@ -23,7 +23,9 @@ const normalizedFrontendUrl = frontendUrl && !frontendUrl.startsWith('http')
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
-    normalizedFrontendUrl
+    normalizedFrontendUrl,
+    'https://lost-and-found-elnn.onrender.com',
+    'https://lost-and-found-five-silk.vercel.app'
 ].filter(Boolean);
 
 app.use(cors({
