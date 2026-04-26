@@ -6,11 +6,12 @@ const {
 } = require('../controllers/itemController');
 const { protect } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
+const { createItemValidation, claimValidation, verifyClaimValidation, confirmRecoveryValidation } = require('../middleware/itemValidation');
 
 // @route   POST api/items
 // @desc    Create a lost/found item with image upload
 // @access  Private
-router.post('/', protect, upload.single('image'), createItem);
+router.post('/', protect, upload.single('image'), createItemValidation, createItem);
 
 // @route   GET api/items
 // @desc    Get all items
@@ -50,16 +51,16 @@ router.patch('/:id/status', protect, toggleStatus);
 // @route   POST api/items/:id/claim
 // @desc    Submit a claim
 // @access  Private
-router.post('/:id/claim', protect, submitClaim);
+router.post('/:id/claim', protect, claimValidation, submitClaim);
 
 // @route   POST api/items/:id/verify
 // @desc    Verify a claim
 // @access  Private
-router.post('/:id/verify', protect, verifyClaim);
+router.post('/:id/verify', protect, verifyClaimValidation, verifyClaim);
 
 // @route   POST api/items/:id/confirm-recovery
 // @desc    Owner confirms receipt
 // @access  Private
-router.post('/:id/confirm-recovery', protect, confirmRecovery);
+router.post('/:id/confirm-recovery', protect, confirmRecoveryValidation, confirmRecovery);
 
 module.exports = router;

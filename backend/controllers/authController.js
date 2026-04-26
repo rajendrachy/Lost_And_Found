@@ -1,5 +1,15 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -19,22 +29,33 @@ exports.registerUser = async (req, res) => {
             return res.status(400).json({ msg: 'User already exists' });
         }
 
-        user = new User({ name, email, password, phone });
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+
+        user = new User({ 
+            name, 
+            email, 
+            password, 
+            phone,
+            verificationToken,
+            isVerified: false
+        });
         await user.save();
 
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify/${verificationToken}`;
+        
+        await transporter.sendMail({
+            to: email,
+            subject: 'Verify your Sajha Khoj account',
+            html: `
+                <h2>Welcome to Sajha Khoj!</h2>
+                <p>Please click the link below to verify your email:</p>
+                <a href="${verificationUrl}" style="padding: 12px 24px; background: #3b82f6; color: white; text-decoration: none; border-radius: 8px;">Verify Email</a>
+                <p>Or copy this link: ${verificationUrl}</p>
+            `
+        }).catch(err => console.log('Email error:', err));
+
         res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            role: user.role,
-            avatar: user.avatar,
-            rating: user.rating,
-            reputationPoints: user.reputationPoints,
-            totalResolved: user.totalResolved,
-            badges: user.badges,
-            currentStreak: user.currentStreak,
-            longestStreak: user.longestStreak,
+            msg: 'Registration successful. Please check your email to verify account.',
             token: generateToken(user._id)
         });
     } catch (err) {
@@ -50,7 +71,15 @@ exports.loginUser = async (req, res) => {
 
     try {
         const user = await User.findOne({ email });
-        if (user && (await user.comparePassword(password))) {
+        if (!user) {
+            return res.status(401).json({ msg: 'Invalid email or password' });
+        }
+        
+        if (!user.isVerified) {
+            return res.status(401).json({ msg: 'Please verify your email first. Check your inbox.' });
+        }
+        
+        if (await user.comparePassword(password)) {
             // Check and award any missing badges
             user.checkAndAwardBadges();
             await user.save();
@@ -219,6 +248,90 @@ exports.syncBadges = async (req, res) => {
             badges: user.badges,
             newBadges
         });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @desc    Forgot password - send reset email
+// @route   POST api/auth/forgot-password
+exports.forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found with this email' });
+        }
+        
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        user.resetToken = resetToken;
+        user.resetTokenExpiry = Date.now() + 3600000;
+        await user.save();
+        
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+        
+        await transporter.sendMail({
+            to: email,
+            subject: 'Reset your Sajha Khoj password',
+            html: `
+                <h2>Password Reset Request</h2>
+                <p>Click below to reset your password:</p>
+                <a href="${resetUrl}" style="padding: 12px 24px; background: #ef4444; color: white; text-decoration: none; border-radius: 8px;">Reset Password</a>
+                <p>This link expires in 1 hour.</p>
+            `
+        }).catch(err => console.log('Email error:', err));
+        
+        res.json({ msg: 'Password reset link sent to your email' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @desc    Reset password
+// @route   POST api/auth/reset-password
+exports.resetPassword = async (req, res) => {
+    const { token, newPassword } = req.body;
+    
+    try {
+        const user = await User.findOne({
+            resetToken: token,
+            resetTokenExpiry: { $gt: Date.now() }
+        });
+        
+        if (!user) {
+            return res.status(400).json({ msg: 'Invalid or expired reset token' });
+        }
+        
+        user.password = newPassword;
+        user.resetToken = undefined;
+        user.resetTokenExpiry = undefined;
+        await user.save();
+        
+        res.json({ msg: 'Password reset successful' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @desc    Verify email
+// @route   GET api/auth/verify/:token
+exports.verifyEmail = async (req, res) => {
+    try {
+        const user = await User.findOne({ verificationToken: req.params.token });
+        
+        if (!user) {
+            return res.status(400).json({ msg: 'Invalid verification token' });
+        }
+        
+        user.isVerified = true;
+        user.verificationToken = undefined;
+        await user.save();
+        
+        res.json({ msg: 'Email verified successfully! You can now login.' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

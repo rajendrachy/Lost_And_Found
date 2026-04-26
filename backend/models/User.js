@@ -48,7 +48,11 @@ const userSchema = new mongoose.Schema({
     currentStreak: { type: Number, default: 0 },
     longestStreak: { type: Number, default: 0 },
     totalItemsPosted: { type: Number, default: 0 },
-    totalClaimsSubmitted: { type: Number, default: 0 }
+    totalClaimsSubmitted: { type: Number, default: 0 },
+    isVerified: { type: Boolean, default: true },
+    verificationToken: String,
+    resetToken: String,
+    resetTokenExpiry: Date
 }, { timestamps: true });
 
 // Badge definitions
