@@ -54,6 +54,14 @@ exports.createItem = async (req, res) => {
 
         const { type, title, description, category, location, date, reward } = req.body;
 
+        let parsedDate = date;
+        if (date) {
+            parsedDate = new Date(date);
+            if (isNaN(parsedDate.getTime())) {
+                parsedDate = date;
+            }
+        }
+
         let parsedReward = undefined;
         if (type === 'found' && reward) {
             try {
@@ -80,7 +88,7 @@ exports.createItem = async (req, res) => {
             description,
             category,
             location,
-            date,
+            date: parsedDate,
             image: imageUrl,
             poster: req.user.id,
             reward: type === 'found' ? {
