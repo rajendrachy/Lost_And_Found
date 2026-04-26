@@ -12,8 +12,10 @@ exports.createItem = async (req, res) => {
         }
         
         // Skip daily item limit check for admin users
+        let canCreate = { can: true, min: 1, max: 999, used: 0, remaining: 999, isPremium: true, plan: 'admin' };
+        
         if (user.role !== 'admin') {
-            const canCreate = await user.canCreateItem();
+            canCreate = await user.canCreateItem();
             
             if (!canCreate.can) {
                 const nextReset = new Date();

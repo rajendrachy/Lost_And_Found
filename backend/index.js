@@ -65,12 +65,12 @@ const generalLimiter = rateLimit({
 // Rate limiting - auth routes (stricter with progressive lockout)
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 50,  // Increased from 5 to 50
+    max: 50,
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => {
         const body = req.body || {};
-        return req.ip + ':' + (body.email || body.username || 'auth');
+        return body.email || body.username || 'auth';
     },
     handler: rateLimitHandler,
     skip: (req) => {
@@ -78,18 +78,19 @@ const authLimiter = rateLimit({
         const email = req.body?.email;
         if (email && (email.toLowerCase().includes('admin') || email.toLowerCase().includes('gmail.com'))) return true;
         return false;
-    }
+    },
+    validate: { ip: false }
 });
 
 // Progressive auth lockout - skip admin emails
 const progressiveAuthLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 20,  // Increased from 3 to 20
+    max: 20,
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => {
         const body = req.body || {};
-        return 'progressive:' + req.ip + ':' + (body.email || body.username || 'auth');
+        return 'progressive:' + (body.email || body.username || 'auth');
     },
     handler: (req, res, options) => {
         const retryAfter = 5 * 60;
@@ -106,7 +107,8 @@ const progressiveAuthLimiter = rateLimit({
         const email = req.body?.email;
         if (email && (email.toLowerCase().includes('admin') || email.toLowerCase().includes('gmail.com'))) return true;
         return false;
-    }
+    },
+    validate: { ip: false }
 });
 
 // Rate limiting - create item
