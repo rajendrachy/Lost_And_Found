@@ -10,6 +10,8 @@ dotenv.config();
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(morgan('dev'));
@@ -67,7 +69,8 @@ const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => {
-        return req.ip + ':' + (req.body.email || req.body.username || 'auth');
+        const body = req.body || {};
+        return req.ip + ':' + (body.email || body.username || 'auth');
     },
     handler: rateLimitHandler,
     skip: (req) => {
@@ -85,7 +88,8 @@ const progressiveAuthLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => {
-        return 'progressive:' + req.ip + ':' + (req.body.email || req.body.username || 'auth');
+        const body = req.body || {};
+        return 'progressive:' + req.ip + ':' + (body.email || body.username || 'auth');
     },
     handler: (req, res, options) => {
         const retryAfter = 5 * 60;
