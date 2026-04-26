@@ -71,7 +71,7 @@ userSchema.methods.checkAndAwardBadges = function() {
     const newBadges = [];
     const currentBadges = this.badges.map(b => b.type + b.threshold);
     
-    for (const badge of User.BADGE_TIERS) {
+    for (const badge of this.constructor.BADGE_TIERS) {
         const badgeKey = badge.type + badge.threshold;
         if (this.totalResolved >= badge.threshold && !currentBadges.includes(badgeKey)) {
             this.badges.push({
