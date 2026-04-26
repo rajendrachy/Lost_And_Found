@@ -442,50 +442,63 @@ const ItemDetails = () => {
                 </div>
               )}
 
-              {/* CONTACT DETAILS */}
+{/* CONTACT DETAILS - Only show if owner or has approved claim */}
+              {(isOwner || approvedClaim || hasClaimed) && (
               <div className="card" style={{ padding: '1.5rem', background: 'white', border: '1px solid #e2e8f0' }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                       <User size={20} color="#64748b" />
-                    </div>
-                    <div>
-                       <div style={{ fontWeight: 900, fontSize: '0.9rem' }}>{item?.poster?.name || 'Anonymous User'}</div>
-                       <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Reporter</div>
-                    </div>
-                 </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                     <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <User size={20} color="#64748b" />
+                     </div>
+                     <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.9rem' }}>{item?.poster?.name || 'Anonymous User'}</div>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Reporter</div>
+                     </div>
+                  </div>
 
-                 {!showContact ? (
-                   <button 
-                    onClick={() => {
-                      if (item?.type === 'found' && !isOwner && !approvedClaim) {
-                        alert('Contact details are locked until your claim is approved.');
-                        return;
-                      }
-                      setShowContact(true);
-                    }} 
-                    className="btn btn-primary btn-block"
-                   >
-                     Show Contact Details
-                   </button>
-                 ) : (
-                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <div>
-                            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8' }}>PHONE</div>
-                            <div style={{ fontWeight: 800 }}>{item?.poster?.phone || 'Not provided'}</div>
-                         </div>
-                         <button onClick={() => { navigator.clipboard.writeText(item?.poster?.phone || ''); alert('Copied!'); }} style={{ border: 'none', background: 'none', color: 'var(--primary)', cursor: 'pointer' }}><Copy size={16} /></button>
-                      </div>
-                      <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <div>
-                            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8' }}>EMAIL</div>
-                            <div style={{ fontWeight: 800 }}>{item?.poster?.email || 'Not provided'}</div>
-                         </div>
-                         <button onClick={() => { navigator.clipboard.writeText(item?.poster?.email || ''); alert('Copied!'); }} style={{ border: 'none', background: 'none', color: 'var(--primary)', cursor: 'pointer' }}><Copy size={16} /></button>
-                      </div>
-                   </div>
-                 )}
+                  {!showContact ? (
+                    <button 
+                     onClick={() => {
+                       if (!isOwner && !approvedClaim) {
+                         alert('Contact details are locked until your claim is approved.');
+                         return;
+                       }
+                       setShowContact(true);
+                     }} 
+                     className="btn btn-primary btn-block"
+                    >
+                      Show Contact Details
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                       <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                             <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8' }}>PHONE</div>
+                             <div style={{ fontWeight: 800 }}>{item?.poster?.phone || 'Not provided'}</div>
+                          </div>
+                          <button onClick={() => { navigator.clipboard.writeText(item?.poster?.phone || ''); alert('Phone copied!'); }} style={{ border: 'none', background: 'none', color: 'var(--primary)', cursor: 'pointer' }}><Copy size={16} /></button>
+                       </div>
+                       <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                             <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8' }}>EMAIL</div>
+                             <div style={{ fontWeight: 800 }}>{item?.poster?.email || 'Not provided'}</div>
+                          </div>
+                          <button onClick={() => { navigator.clipboard.writeText(item?.poster?.email || ''); alert('Email copied!'); }} style={{ border: 'none', background: 'none', color: 'var(--primary)', cursor: 'pointer' }}><Copy size={16} /></button>
+                       </div>
+                       <button 
+                        onClick={() => { 
+                          const contactInfo = `Phone: ${item?.poster?.phone || 'N/A'}\nEmail: ${item?.poster?.email || 'N/A'}`;
+                          navigator.clipboard.writeText(contactInfo); 
+                          alert('Contact info copied to clipboard!'); 
+                        }} 
+                        className="btn btn-outline btn-sm"
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                       >
+                        <Copy size={16} /> Copy All Contact Info
+                       </button>
+                    </div>
+                  )}
               </div>
+              )}
             </motion.div>
           </div>
         </div>

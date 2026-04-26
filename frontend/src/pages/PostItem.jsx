@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Camera, MapPin, Calendar, Tag, FileText, Send, CheckCircle, Shield, Search, Activity, Star, Plus } from 'lucide-react';
+import { Camera, MapPin, Calendar, Tag, FileText, Send, CheckCircle, Shield, Search, Activity, Star, Plus, DollarSign } from 'lucide-react';
 import API from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,6 +19,7 @@ const PostItem = () => {
     type: 'lost', title: '', category: '', location: '', date: '', description: ''
   });
   const [imageFile, setImageFile] = useState(null);
+  const [rewardData, setRewardData] = useState({ amount: '', currency: 'NPR', description: '' });
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -41,6 +42,10 @@ const PostItem = () => {
       data.append('date', formData.date);
       data.append('description', formData.description);
       if (imageFile) data.append('image', imageFile);
+      
+      if (formData.type === 'found' && rewardData.amount) {
+        data.append('reward', JSON.stringify(rewardData));
+      }
 
       await API.post('/items', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -212,6 +217,56 @@ const PostItem = () => {
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
                         </div>
                       </div>
+
+                      {formData.type === 'found' && (
+                        <div style={{ 
+                          padding: '1.5rem', 
+                          background: 'linear-gradient(135deg, #fef9c2 0%, #fef3c7 100%)', 
+                          borderRadius: '16px', 
+                          border: '1px solid #facc15',
+                          marginTop: '0.5rem'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                            <DollarSign size={20} color="#d97706" />
+                            <span style={{ fontSize: '1rem', fontWeight: 900, color: '#92400e' }}>Offer a Reward (Optional)</span>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label className="form-label">Amount</label>
+                              <input 
+                                type="number" 
+                                className="form-input" 
+                                placeholder="500"
+                                value={rewardData.amount}
+                                onChange={(e) => setRewardData({ ...rewardData, amount: e.target.value })}
+                                min="0"
+                              />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label className="form-label">Currency</label>
+                              <select 
+                                className="form-select"
+                                value={rewardData.currency}
+                                onChange={(e) => setRewardData({ ...rewardData, currency: e.target.value })}
+                              >
+                                <option value="NPR">NPR</option>
+                                <option value="USD">USD</option>
+                                <option value="INR">INR</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="form-label">Reward Message (Optional)</label>
+                            <input 
+                              type="text" 
+                              className="form-input" 
+                              placeholder="e.g. Thank you for returning!"
+                              value={rewardData.description}
+                              onChange={(e) => setRewardData({ ...rewardData, description: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                      )}
 
                       <div style={{ marginTop: '1rem' }}>
                         <button type="submit" disabled={isSubmitting} className="btn btn-primary btn-lg btn-block" style={{ height: '64px' }}>

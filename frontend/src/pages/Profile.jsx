@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { 
   User, Mail, Phone, LogOut, Package, CheckCircle, 
-  Clock, Trash2, Activity, Shield, Box, FileText, Copy, Award, Trophy
+  Clock, Trash2, Activity, Shield, Box, FileText, Copy, Award, Trophy, Gift, DollarSign
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -73,16 +73,23 @@ const VerificationDesk = () => {
       ) : (
         items.map(item => (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} key={item._id} className="card" style={{ padding: '0', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.05)' }}>
-            <div style={{ padding: '1.5rem 2rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-               <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-                  <img src={item.image} style={{ width: 56, height: 56, borderRadius: '12px', objectFit: 'cover', border: '2px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} alt="" />
-                  <div>
-                    <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{item.title}</h4>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.category}</span>
-                    </div>
-                  </div>
-               </div>
+<div style={{ padding: '1.5rem 2rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                   <img src={item.image} style={{ width: 56, height: 56, borderRadius: '12px', objectFit: 'cover', border: '2px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} alt="" />
+                   <div>
+                     <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{item.title}</h4>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                       <span style={{ 
+                         fontSize: '0.65rem', fontWeight: 900, 
+                         color: item.type === 'lost' ? '#ef4444' : '#10b981',
+                         textTransform: 'uppercase', letterSpacing: '0.05em' 
+                       }}>
+                         {item.type === 'lost' ? 'FOUND CLAIM' : 'OWNERSHIP CLAIM'}
+                       </span>
+                       <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>• {item.category}</span>
+                     </div>
+                   </div>
+                </div>
                <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{item.claims.filter(c => c.status === 'pending').length}</div>
                   <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>New Claims</div>
@@ -228,6 +235,102 @@ const SecuritySection = () => {
           </button>
         </div>
       </form>
+    </div>
+  );
+};
+
+const RewardsSection = () => {
+  const { user } = useAuth();
+  const [earnedRewards, setEarnedRewards] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEarnedRewards = async () => {
+      try {
+        const res = await API.get('/items/my');
+        const itemsWithRewards = res.data.filter(item => 
+          item.type === 'found' && 
+          item.reward?.amount > 0 &&
+          item.status === 'resolved' &&
+          item.reward?.claimed === true
+        );
+        setEarnedRewards(itemsWithRewards);
+      } catch (err) {
+        console.error('Failed to fetch rewards');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEarnedRewards();
+  }, []);
+
+  return (
+    <div className="card" style={{ padding: 'clamp(1.5rem, 5vw, 2.5rem)', background: 'linear-gradient(135deg, #fef9c2 0%, #fef3c7 100%)', border: '1px solid #facc15' }}>
+      <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+          <Gift size={24} />
+        </div>
+        <div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#92400e' }}>My Earned Rewards</h2>
+          <p style={{ fontSize: '0.85rem', color: '#b45309', fontWeight: 600 }}>Rewards from successfully returned items.</p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="spinner"></div>
+      ) : earnedRewards.length === 0 ? (
+        <div style={{ padding: '3rem 1rem', textAlign: 'center', background: 'white', borderRadius: '16px', border: '1px solid #fde68a' }}>
+          <DollarSign size={40} style={{ color: '#fde68a', marginBottom: '1rem', margin: '0 auto 1rem' }} />
+          <h3 style={{ fontSize: '1rem', fontWeight: 900, color: '#92400e', marginBottom: '0.5rem' }}>No rewards yet</h3>
+          <p style={{ fontSize: '0.85rem', color: '#b45309', fontWeight: 500, lineHeight: 1.5 }}>
+            Post found items with rewards to earn from generous owners who appreciate your help!
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {earnedRewards.map((item) => (
+            <div key={item._id} style={{ 
+              padding: '1.5rem', 
+              background: 'white', 
+              borderRadius: '16px', 
+              border: '1px solid #fde68a',
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '1.25rem',
+              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.1)'
+            }}>
+              <div style={{ 
+                width: 56, height: 56, 
+                borderRadius: '14px', 
+                background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Gift size={28} color="#d97706" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.25rem' }}>{item.title}</h4>
+                <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>
+                  From {item.poster?.name || 'Owner'} • {new Date(item.reward?.claimedAt).toLocaleDateString()}
+                </p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#d97706' }}>
+                  {item.reward?.currency || 'NPR'} {item.reward?.amount || 0}
+                </div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#b45309', textTransform: 'uppercase' }}>Earned</div>
+              </div>
+            </div>
+          ))}
+          
+          <div style={{ padding: '1.25rem', background: '#92400e', borderRadius: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'white', fontWeight: 800, fontSize: '0.9rem' }}>Total Earnings</span>
+            <span style={{ color: '#fef3c7', fontWeight: 900, fontSize: '1.25rem' }}>
+              NPR {earnedRewards.reduce((sum, item) => sum + (item.reward?.amount || 0), 0)}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -455,15 +558,16 @@ const handleDelete = async (id) => {
                  )}
               </div>
 
-             {/* NAVIGATION */}
-             <div className="card" style={{ padding: '1rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                   {[
-                     { id: 'active', label: 'Active Reports', icon: <Activity size={18} /> },
-                     { id: 'resolved', label: 'Success Stories', icon: <CheckCircle size={18} /> },
-                     { id: 'claims', label: 'Verification Desk', icon: <Shield size={18} /> },
-                     { id: 'settings', label: 'Account Security', icon: <Package size={18} /> },
-                   ].map(t => (
+{/* NAVIGATION */}
+              <div className="card" style={{ padding: '1rem' }}>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {[
+                      { id: 'active', label: 'Active Reports', icon: <Activity size={18} /> },
+                      { id: 'resolved', label: 'Success Stories', icon: <CheckCircle size={18} /> },
+                      { id: 'rewards', label: 'My Rewards', icon: <Gift size={18} /> },
+                      { id: 'claims', label: 'Verification Desk', icon: <Shield size={18} /> },
+                      { id: 'settings', label: 'Account Security', icon: <Package size={18} /> },
+                    ].map(t => (
                      <button 
                        key={t.id}
                        onClick={() => setActiveTab(t.id)}
@@ -483,10 +587,12 @@ const handleDelete = async (id) => {
 
           {/* RIGHT CONTENT */}
           <div style={{ gridColumn: 'span 2' }}>
-             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} key={activeTab}>
-                {activeTab === 'claims' ? (
-                  <VerificationDesk />
-                ) : activeTab === 'settings' ? (
+<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} key={activeTab}>
+                 {activeTab === 'rewards' ? (
+                   <RewardsSection />
+                 ) : activeTab === 'claims' ? (
+                   <VerificationDesk />
+                 ) : activeTab === 'settings' ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     <div className="card" style={{ padding: 'clamp(1.5rem, 5vw, 2.5rem)' }}>
                        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '0.5rem' }}>Personal Identity</h2>

@@ -8,6 +8,15 @@ exports.createItem = async (req, res) => {
     try {
         const { type, title, description, category, location, date, reward } = req.body;
 
+        let parsedReward = undefined;
+        if (type === 'found' && reward) {
+            try {
+                parsedReward = typeof reward === 'string' ? JSON.parse(reward) : reward;
+            } catch (e) {
+                parsedReward = { amount: 0, currency: 'NPR', description: '' };
+            }
+        }
+
         let imageUrl = '';
         if (req.file) {
             const result = await uploadToCloudinary(req.file.buffer);
@@ -29,9 +38,9 @@ exports.createItem = async (req, res) => {
             image: imageUrl,
             poster: req.user.id,
             reward: type === 'found' ? {
-                amount: reward?.amount || 0,
-                currency: reward?.currency || 'NPR',
-                description: reward?.description || ''
+                amount: parsedReward?.amount || 0,
+                currency: parsedReward?.currency || 'NPR',
+                description: parsedReward?.description || ''
             } : undefined
         });
 
@@ -247,6 +256,17 @@ exports.submitClaim = async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
         if (!item) return res.status(404).json({ msg: 'Item not found' });
+        
+        if (item.status === 'resolved') {
+            return res.status(400).json({ msg: 'This item has already been resolved. You cannot submit a claim.' });
+        }
+        
+        if (item.type === 'lost' && item.poster.toString() === req.user.id) {
+            return res.status(400).json({ msg: 'You cannot claim your own lost item.' });
+        }
+        if (item.type === 'found' && item.poster.toString() === req.user.id) {
+            return res.status(400).json({ msg: 'You cannot claim your own found item.' });
+        }
         
         const existingClaim = item.claims.find(c => c.user.toString() === req.user.id);
         if (existingClaim) return res.status(400).json({ msg: 'You have already submitted a claim' });
