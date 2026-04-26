@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, ArrowRight, Search, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Search, ShieldCheck, Unlock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -90,6 +90,12 @@ const Login = () => {
                 <input type="password" required value={password} onChange={(e) => { setPassword(e.target.value); clearError(); }}
                   placeholder="••••••••" className="form-input" style={{ background: 'white' }} />
               </div>
+            </div>
+
+            <div style={{ textAlign: 'right', marginTop: '0.5rem', marginBottom: '1rem' }}>
+              <Link to="/forgot-password" style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600 }}>
+                <Unlock size={14} style={{ marginRight: '4px' }} /> Forgot Password?
+              </Link>
             </div>
 
             <button type="submit" disabled={isSubmitting} className="btn btn-primary btn-lg btn-block" style={{ marginTop: '1rem', padding: '1.25rem' }}>

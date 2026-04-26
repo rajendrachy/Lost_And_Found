@@ -7,6 +7,9 @@ import ItemDetails from './pages/ItemDetails';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 
 import Explore from './pages/Explore';
 import Safety from './pages/Safety';
@@ -45,6 +48,9 @@ function App() {
           } />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/verify/:token" element={<VerifyEmail />} />
           <Route path="/post" element={
             <PrivateRoute>
               <PostItem />
