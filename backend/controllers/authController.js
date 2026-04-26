@@ -41,7 +41,8 @@ exports.registerUser = async (req, res) => {
         });
         await user.save();
 
-        const verificationUrl = `${process.env.FRONTEND_URL}/verify/${verificationToken}`;
+        const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.trim() : 'http://localhost:5173';
+        const verificationUrl = `${frontendUrl}/verify/${verificationToken}`;
         
         await transporter.sendMail({
             to: email,
@@ -270,7 +271,8 @@ exports.forgotPassword = async (req, res) => {
         user.resetTokenExpiry = Date.now() + 3600000;
         await user.save();
         
-        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+        const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.trim() : 'http://localhost:5173';
+        const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
         
         await transporter.sendMail({
             to: email,
