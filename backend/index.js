@@ -118,15 +118,15 @@ const itemLimiter = rateLimit({
     handler: rateLimitHandler
 });
 
+// Body parser
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
 // Apply rate limiting
 app.use('/api', generalLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api/auth', progressiveAuthLimiter);
 app.use('/api/items', itemLimiter);
-
-// Body parser
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
