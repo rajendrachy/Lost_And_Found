@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser, getUserProfile, updateAvatar, updateProfile, changePassword, syncBadges, forgotPassword, resetPassword, verifyEmail } = require('../controllers/authController');
+const { registerUser, loginUser, getUserProfile, updateAvatar, updateProfile, changePassword, syncBadges, forgotPassword, resetPassword, verifyEmail, requestPlan, getPlanStatus } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
 const { registerValidation, loginValidation, updateProfileValidation, changePasswordValidation } = require('../middleware/validation');
@@ -15,5 +15,7 @@ router.put('/profile', protect, updateProfileValidation, updateProfile);
 router.put('/password', protect, changePasswordValidation, changePassword);
 router.post('/avatar', protect, upload.single('image'), updateAvatar);
 router.post('/sync-badges', protect, syncBadges);
+router.post('/request-plan', protect, requestPlan);
+router.get('/plan-status', protect, getPlanStatus);
 
 module.exports = router;

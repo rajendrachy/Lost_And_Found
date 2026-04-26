@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Lock, Phone, ArrowRight, Search, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +30,42 @@ const Register = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const renderError = () => {
+    if (!error) return null;
+    
+    const errorMsg = typeof error === 'string' ? error : error?.message;
+    const retryAfter = typeof error === 'object' ? error?.retryAfter : null;
+    const remainingAttempts = typeof error === 'object' ? error?.remainingAttempts : null;
+    const isLocked = typeof error === 'object' ? error?.locked : false;
+
+    if (isLocked && retryAfter) {
+      const minutes = Math.floor(retryAfter / 60);
+      const seconds = retryAfter % 60;
+      const timeDisplay = minutes > 0 ? `${minutes} minute${minutes > 1 ? 's' : ''}` : `${seconds} seconds`;
+      return (
+        <div className="alert alert-error">
+          <div>{errorMsg}</div>
+          <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', opacity: 0.9 }}>
+            Please wait <strong>{timeDisplay}</strong> before trying again.
+          </div>
+        </div>
+      );
+    }
+
+    if (remainingAttempts !== null && remainingAttempts !== undefined) {
+      return (
+        <div className="alert alert-error">
+          <div>{errorMsg}</div>
+          <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', opacity: 0.9 }}>
+            Remaining attempts: <strong>{remainingAttempts}</strong>
+          </div>
+        </div>
+      );
+    }
+
+    return <div className="alert alert-error">{errorMsg}</div>;
   };
 
   return (
@@ -81,7 +117,7 @@ const Register = () => {
             <p className="auth-subtitle">Join the largest lost and found community.</p>
           </div>
 
-          {error && <div className="alert alert-error">{error}</div>}
+          {renderError()}
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">

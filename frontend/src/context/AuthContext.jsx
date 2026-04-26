@@ -34,8 +34,17 @@ export const AuthProvider = ({ children }) => {
             setUser(res.data);
             return res.data;
         } catch (err) {
-            const msg = err.response?.data?.msg || 'Login failed';
-            setError(msg);
+            const retryInfo = err.response?.data;
+            const msg = retryInfo?.msg || 'Login failed';
+            setError({
+                message: msg,
+                retryAfter: retryInfo?.retryAfter,
+                remainingAttempts: retryInfo?.remainingAttempts,
+                locked: retryInfo?.locked,
+                type: retryInfo?.type,
+                limit: retryInfo?.limit,
+                upgrade: retryInfo?.upgrade
+            });
             throw new Error(msg);
         }
     };
@@ -49,8 +58,17 @@ export const AuthProvider = ({ children }) => {
             setUser(res.data);
             return res.data;
         } catch (err) {
-            const msg = err.response?.data?.msg || 'Registration failed';
-            setError(msg);
+            const retryInfo = err.response?.data;
+            const msg = retryInfo?.msg || 'Registration failed';
+            setError({
+                message: msg,
+                retryAfter: retryInfo?.retryAfter,
+                remainingAttempts: retryInfo?.remainingAttempts,
+                locked: retryInfo?.locked,
+                type: retryInfo?.type,
+                limit: retryInfo?.limit,
+                upgrade: retryInfo?.upgrade
+            });
             throw new Error(msg);
         }
     };

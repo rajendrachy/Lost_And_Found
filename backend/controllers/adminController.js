@@ -63,3 +63,56 @@ exports.deleteItem = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
+
+// @desc    Get all plan requests
+// @route   GET api/admin/plan-requests
+exports.getPlanRequests = async (req, res) => {
+    try {
+        const users = await User.find({ 
+            'planRequest.status': { $in: ['pending', 'approved', 'rejected'] }
+        }).select('name email planRequest');
+        res.json(users);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @desc    Approve or reject plan request
+// @route   POST api/admin/plan-requests/:userId
+exports.respondPlanRequest = async (req, res) => {
+    try {
+        const { action, response } = req.body;
+        const user = await User.findById(req.params.userId);
+        
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+        
+        if (action === 'approve') {
+            const planEndDate = new Date();
+            planEndDate.setFullYear(planEndDate.getFullYear() + 1);
+            
+            user.plan = 'premium';
+            user.planStartDate = new Date();
+            user.planEndDate = planEndDate;
+            user.planRequest = {
+                status: 'approved',
+                adminResponse: response || 'Your premium plan has been approved!',
+                respondedAt: new Date()
+            };
+        } else {
+            user.planRequest = {
+                status: 'rejected',
+                adminResponse: response || 'Your plan request was rejected.',
+                respondedAt: new Date()
+            };
+        }
+        
+        await user.save();
+        res.json({ msg: `Plan request ${action}ed`, user });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};

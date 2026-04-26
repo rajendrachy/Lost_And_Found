@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, ArrowRight, Search, ShieldCheck, Unlock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +26,65 @@ const Login = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const renderError = () => {
+    if (!error) return null;
+    
+    const errorData = typeof error === 'object' ? error : { message: error };
+    const errorMsg = errorData?.message;
+    const limitInfo = errorData?.limit;
+    const isLimited = errorData?.type === 'limit_exceeded';
+    
+    if (isLimited && limitInfo) {
+      return (
+        <div className="alert alert-error">
+          <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{errorMsg}</div>
+          <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+            <div style={{ marginBottom: '0.25rem' }}>
+              <strong>Daily Login Limit:</strong> {limitInfo.min} - {limitInfo.max} times per day
+            </div>
+            <div style={{ marginBottom: '0.25rem' }}>
+              Used: <strong>{limitInfo.used}</strong> | Remaining: <strong>{limitInfo.remaining}</strong>
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              Current Plan: <strong style={{ textTransform: 'uppercase', color: limitInfo.isPremium ? '#10b981' : '#64748b' }}>{limitInfo.plan}</strong>
+            </div>
+            {limitInfo.upgrade?.available && (
+              <button 
+                onClick={() => navigate('/plan')}
+                style={{ 
+                  background: 'var(--primary)', color: 'white', border: 'none', 
+                  padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', 
+                  fontWeight: 600, fontSize: '0.85rem', marginTop: '0.5rem'
+                }}
+              >
+                Upgrade to Premium for Unlimited
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    const retryAfter = errorData?.retryAfter;
+    const isLocked = errorData?.locked;
+    
+    if (isLocked && retryAfter) {
+      const minutes = Math.floor(retryAfter / 60);
+      const seconds = retryAfter % 60;
+      const timeDisplay = minutes > 0 ? `${minutes} minute${minutes > 1 ? 's' : ''}` : `${seconds} seconds`;
+      return (
+        <div className="alert alert-error">
+          <div>{errorMsg}</div>
+          <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', opacity: 0.9 }}>
+            Please wait <strong>{timeDisplay}</strong> before trying again.
+          </div>
+        </div>
+      );
+    }
+
+    return <div className="alert alert-error">{errorMsg}</div>;
   };
 
   return (
@@ -71,7 +130,7 @@ const Login = () => {
             <p className="auth-subtitle">Enter your credentials to access your account.</p>
           </div>
 
-          {error && <div className="alert alert-error">{error}</div>}
+          {renderError()}
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">

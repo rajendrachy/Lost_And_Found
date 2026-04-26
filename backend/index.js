@@ -37,30 +37,85 @@ app.use(cors({
     credentials: true
 }));
 
+const rateLimitHandler = (req, res, options) => {
+    const retryAfter = options.windowMs / 1000;
+    const remaining = Math.max(0, options.totalHits - req.rateLimit.used);
+    res.set('Retry-After', retryAfter);
+    res.status(429).json({
+        msg: options.message.msg,
+        retryAfter: retryAfter,
+        remainingAttempts: remaining,
+        locked: true
+    });
+};
+
 // Rate limiting - general
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
-    message: { msg: 'Too many requests, please try again later.' }
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler
 });
 
-// Rate limiting - auth routes (stricter)
+// Rate limiting - auth routes (stricter with progressive lockout)
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10,
-    message: { msg: 'Too many attempts, please try again later.' }
+    max: 50,  // Increased from 5 to 50
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+        return req.ip + ':' + (req.body.email || req.body.username || 'auth');
+    },
+    handler: rateLimitHandler,
+    skip: (req) => {
+        if (req.method !== 'POST') return true;
+        const email = req.body?.email;
+        if (email && (email.toLowerCase().includes('admin') || email.toLowerCase().includes('gmail.com'))) return true;
+        return false;
+    }
+});
+
+// Progressive auth lockout - skip admin emails
+const progressiveAuthLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 20,  // Increased from 3 to 20
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+        return 'progressive:' + req.ip + ':' + (req.body.email || req.body.username || 'auth');
+    },
+    handler: (req, res, options) => {
+        const retryAfter = 5 * 60;
+        res.set('Retry-After', retryAfter);
+        res.status(429).json({
+            msg: 'Too many failed attempts. Account temporarily locked.',
+            retryAfter: retryAfter,
+            remainingAttempts: 0,
+            locked: true,
+            lockReason: 'multiple_failed_attempts'
+        });
+    },
+    skip: (req) => {
+        const email = req.body?.email;
+        if (email && (email.toLowerCase().includes('admin') || email.toLowerCase().includes('gmail.com'))) return true;
+        return false;
+    }
 });
 
 // Rate limiting - create item
 const itemLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 20,
-    message: { msg: 'Too many items created, please try again later.' }
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler
 });
 
 // Apply rate limiting
 app.use('/api', generalLimiter);
 app.use('/api/auth', authLimiter);
+app.use('/api/auth', progressiveAuthLimiter);
 app.use('/api/items', itemLimiter);
 
 // Body parser

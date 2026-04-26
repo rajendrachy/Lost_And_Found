@@ -52,7 +52,27 @@ const userSchema = new mongoose.Schema({
     isVerified: { type: Boolean, default: true },
     verificationToken: String,
     resetToken: String,
-    resetTokenExpiry: Date
+    resetTokenExpiry: Date,
+    plan: {
+        type: String,
+        enum: ['free', 'premium'],
+        default: 'free'
+    },
+    planStartDate: Date,
+    planEndDate: Date,
+    itemsCreatedToday: { type: Number, default: 0 },
+    itemsCreatedDate: { type: Date, default: null },
+    dailyItemResetAt: { type: Date, default: null },
+    loginCount: { type: Number, default: 0 },
+    loginDate: { type: Date, default: null },
+    loginResetAt: { type: Date, default: null },
+    planRequest: {
+        status: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
+        message: String,
+        requestedAt: Date,
+        adminResponse: String,
+        respondedAt: Date
+    }
 }, { timestamps: true });
 
 // Badge definitions
@@ -96,9 +116,168 @@ userSchema.pre('save', async function(next) {
     next();
 });
 
+// Free plan limits per day
+const FREE_ITEM_MIN = 1;
+const FREE_ITEM_MAX = 12;
+const FREE_LOGIN_MIN = 1;
+const FREE_LOGIN_MAX = 12;
+
+// Premium plan limits (unlimited)
+const PREMIUM_LIMIT = 999;
+
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
+};
+
+userSchema.methods.hasPremium = function() {
+    if (this.plan === 'premium') {
+        if (this.planEndDate && this.planEndDate > new Date()) {
+            return true;
+        }
+        if (this.planEndDate && this.planEndDate <= new Date()) {
+            return 'expired';
+        }
+        return true;
+    }
+    return false;
+};
+
+userSchema.methods.getDailyItemLimit = function() {
+    const premium = this.hasPremium();
+    if (premium === true) return PREMIUM_LIMIT;
+    if (premium === 'expired') return FREE_ITEM_MAX;
+    return FREE_ITEM_MAX;
+};
+
+userSchema.methods.getDailyLoginLimit = function() {
+    const premium = this.hasPremium();
+    if (premium === true) return PREMIUM_LIMIT;
+    if (premium === 'expired') return FREE_LOGIN_MAX;
+    return FREE_LOGIN_MAX;
+};
+
+userSchema.methods.canCreateItem = async function() {
+    const limit = this.getDailyItemLimit();
+    if (limit >= PREMIUM_LIMIT) return { 
+        can: true, 
+        remaining: PREMIUM_LIMIT,
+        min: FREE_ITEM_MIN,
+        max: PREMIUM_LIMIT,
+        isPremium: true,
+        plan: this.plan
+    };
+    
+    const now = new Date();
+    if (!this.itemsCreatedDate || now.toDateString() !== this.itemsCreatedDate.toDateString()) {
+        this.itemsCreatedDate = now;
+        this.itemsCreatedToday = 0;
+        await this.save();
+        return { 
+            can: true, 
+            remaining: FREE_ITEM_MAX,
+            min: FREE_ITEM_MIN,
+            max: FREE_ITEM_MAX,
+            isPremium: false,
+            plan: this.plan
+        };
+    }
+    
+    if (this.itemsCreatedToday >= FREE_ITEM_MAX) {
+        return { 
+            can: false, 
+            remaining: 0,
+            min: FREE_ITEM_MIN,
+            max: FREE_ITEM_MAX,
+            used: this.itemsCreatedToday,
+            isPremium: false,
+            plan: this.plan,
+            resetAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+        };
+    }
+    
+    return { 
+        can: true, 
+        remaining: FREE_ITEM_MAX - this.itemsCreatedToday,
+        min: FREE_ITEM_MIN,
+        max: FREE_ITEM_MAX,
+        used: this.itemsCreatedToday,
+        isPremium: false,
+        plan: this.plan
+    };
+};
+
+userSchema.methods.recordItemCreated = async function() {
+    const now = new Date();
+    if (!this.itemsCreatedDate || now.toDateString() !== this.itemsCreatedDate.toDateString()) {
+        this.itemsCreatedDate = now;
+        this.itemsCreatedToday = 1;
+    } else {
+        this.itemsCreatedToday += 1;
+    }
+    this.totalItemsPosted += 1;
+    await this.save();
+};
+
+userSchema.methods.canLoginToday = async function() {
+    const limit = this.getDailyLoginLimit();
+    if (limit >= PREMIUM_LIMIT) return { 
+        can: true, 
+        remaining: PREMIUM_LIMIT,
+        min: FREE_LOGIN_MIN,
+        max: PREMIUM_LIMIT,
+        isPremium: true,
+        plan: this.plan
+    };
+    
+    const now = new Date();
+    if (!this.loginDate || now.toDateString() !== this.loginDate.toDateString()) {
+        this.loginDate = now;
+        this.loginCount = 0;
+        await this.save();
+        return { 
+            can: true, 
+            remaining: FREE_LOGIN_MAX,
+            min: FREE_LOGIN_MIN,
+            max: FREE_LOGIN_MAX,
+            isPremium: false,
+            plan: this.plan
+        };
+    }
+    
+    if (this.loginCount >= FREE_LOGIN_MAX) {
+        return { 
+            can: false, 
+            remaining: 0,
+            min: FREE_LOGIN_MIN,
+            max: FREE_LOGIN_MAX,
+            used: this.loginCount,
+            isPremium: false,
+            plan: this.plan,
+            resetAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+        };
+    }
+    
+    return { 
+        can: true, 
+        remaining: FREE_LOGIN_MAX - this.loginCount,
+        min: FREE_LOGIN_MIN,
+        max: FREE_LOGIN_MAX,
+        used: this.loginCount,
+        isPremium: false,
+        plan: this.plan
+    };
+};
+
+userSchema.methods.recordLogin = async function() {
+    const now = new Date();
+    if (!this.loginDate || now.toDateString() !== this.loginDate.toDateString()) {
+        this.loginDate = now;
+        this.loginCount = 1;
+    } else {
+        this.loginCount += 1;
+    }
+    await this.save();
 };
 
 module.exports = mongoose.model('User', userSchema);

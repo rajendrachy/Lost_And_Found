@@ -80,7 +80,42 @@ exports.loginUser = async (req, res) => {
             return res.status(401).json({ msg: 'Please verify your email first. Check your inbox.' });
         }
         
+        // Skip daily login limit check for admin users
+        if (user.role !== 'admin') {
+            const canLogin = await user.canLoginToday();
+            if (!canLogin.can) {
+                const nextReset = new Date();
+                nextReset.setHours(24, 0, 0, 0);
+                
+                return res.status(429).json({ 
+                    error: 'daily_limit_reached',
+                    msg: `You have reached your daily login limit of ${canLogin.max} times per day. You can login minimum ${canLogin.min} and maximum ${canLogin.max} times per day on ${canLogin.plan} plan.`,
+                    type: 'limit_exceeded',
+                    limit: {
+                        min: canLogin.min,
+                        max: canLogin.max,
+                        used: canLogin.used,
+                        remaining: canLogin.remaining,
+                        plan: canLogin.plan,
+                        isPremium: canLogin.isPremium,
+                        resetAt: nextReset.toISOString(),
+                        resetIn: 'tomorrow at midnight'
+                    },
+                    upgrade: {
+                        available: !canLogin.isPremium,
+                        message: 'Upgrade to Premium for unlimited logins',
+                        url: '/plan'
+                    }
+                });
+            }
+        }
+        
         if (await user.comparePassword(password)) {
+            // Only record login for non-admin users
+            if (user.role !== 'admin') {
+                await user.recordLogin();
+            }
+            
             // Check and award any missing badges
             user.checkAndAwardBadges();
             await user.save();
@@ -98,6 +133,7 @@ exports.loginUser = async (req, res) => {
                 badges: user.badges,
                 currentStreak: user.currentStreak,
                 longestStreak: user.longestStreak,
+                plan: user.plan,
                 token: generateToken(user._id)
             });
         } else {
@@ -334,6 +370,65 @@ exports.verifyEmail = async (req, res) => {
         await user.save();
         
         res.json({ msg: 'Email verified successfully! You can now login.' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @desc    Request premium plan
+// @route   POST api/auth/request-plan
+exports.requestPlan = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+        
+        if (user.plan === 'premium') {
+            return res.status(400).json({ msg: 'You already have a premium plan' });
+        }
+        
+        if (user.planRequest && user.planRequest.status === 'pending') {
+            return res.status(400).json({ msg: 'You already have a pending plan request' });
+        }
+        
+        const { message } = req.body;
+        user.planRequest = {
+            status: 'pending',
+            message: message || 'I want to buy the premium plan for unlimited features.',
+            requestedAt: new Date()
+        };
+        await user.save();
+        
+        res.json({ msg: 'Plan request submitted. Admin will review it.' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @desc    Get plan status
+// @route   GET api/auth/plan-status
+exports.getPlanStatus = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+        
+        const isPremium = user.hasPremium();
+        
+        res.json({
+            plan: user.plan,
+            planStartDate: user.planStartDate,
+            planEndDate: user.planEndDate,
+            isPremium: isPremium === true,
+            isExpired: isPremium === 'expired',
+            planRequest: user.planRequest,
+            dailyItemLimit: user.getDailyItemLimit(),
+            dailyLoginLimit: user.getDailyLoginLimit()
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

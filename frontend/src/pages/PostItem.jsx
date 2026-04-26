@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Camera, MapPin, Calendar, Tag, FileText, Send, CheckCircle, Shield, Search, Activity, Star, Plus, DollarSign } from 'lucide-react';
+import { Camera, MapPin, Calendar, Tag, FileText, Send, CheckCircle, Shield, Search, Activity, Star, Plus, DollarSign, Crown } from 'lucide-react';
 import API from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -47,13 +47,46 @@ const PostItem = () => {
         data.append('reward', JSON.stringify(rewardData));
       }
 
-      await API.post('/items', data, {
+      const res = await API.post('/items', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setSuccess(true);
       setTimeout(() => navigate(user?.role === 'admin' ? '/admin' : '/profile'), 8000);
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to post item. Please try again.');
+      const errData = err.response?.data;
+      if (errData?.type === 'limit_exceeded' || errData?.upgrade?.available) {
+        const limit = errData?.limit || {};
+        setError(
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{errData.msg}</div>
+            <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>
+              <div style={{ marginBottom: '0.25rem' }}>
+                <strong>Daily Item Limit:</strong> {limit.min} - {limit.max} items per day
+              </div>
+              <div style={{ marginBottom: '0.25rem' }}>
+                Used: <strong>{limit.used}</strong> | Remaining: <strong>{limit.remaining}</strong>
+              </div>
+              <div style={{ marginBottom: '0.5rem' }}>
+                Current Plan: <strong style={{ textTransform: 'uppercase', color: limit.isPremium ? '#10b981' : '#64748b' }}>{limit.plan}</strong>
+              </div>
+              {limit.upgrade?.available && (
+                <button 
+                  onClick={() => navigate('/plan')}
+                  style={{ 
+                    background: 'var(--primary)', color: 'white', border: 'none', 
+                    padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', 
+                    fontWeight: 600, fontSize: '0.8rem', marginTop: '0.5rem', display: 'block'
+                  }}
+                >
+                  Upgrade to Premium for Unlimited
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      } else {
+        setError(errData?.msg || 'Failed to post item. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -135,7 +168,13 @@ const PostItem = () => {
             <div className="col-span-8">
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                 <div className="card" style={{ padding: 'clamp(1.5rem, 5vw, 3rem)', border: '1px solid #e2e8f0' }}>
-                  {error && <div className="alert alert-error">{error}</div>}
+                  {error && (
+                    typeof error === 'string' ? (
+                      <div className="alert alert-error">{error}</div>
+                    ) : (
+                      <div className="alert alert-error">{error}</div>
+                    )
+                  )}
 
                   <form onSubmit={handleSubmit}>
                     {/* NEW CUSTOM TOGGLE */}

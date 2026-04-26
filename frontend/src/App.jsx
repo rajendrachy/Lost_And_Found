@@ -18,6 +18,7 @@ import Admin from './pages/Admin';
 import HelpCenter from './pages/HelpCenter';
 import NextStepPortal from './components/NextStepPortal';
 import WhyChoose from './pages/WhyChoose';
+import Plan from './pages/Plan';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -57,11 +58,16 @@ function App() {
             </PrivateRoute>
           } />
           <Route path="/item/:id" element={<ItemDetails />} />
-          <Route path="/profile" element={
-            <PrivateRoute>
-              <Profile />
-            </PrivateRoute>
-          } />
+<Route path="/profile" element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            } />
+            <Route path="/plan" element={
+              <PrivateRoute>
+                <Plan />
+              </PrivateRoute>
+            } />
         </Routes>
       </Router>
     </AuthProvider>

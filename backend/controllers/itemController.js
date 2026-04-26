@@ -6,6 +6,50 @@ const User = require('../models/User');
 // Create a new item (Lost or Found)
 exports.createItem = async (req, res) => {
     try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+        
+        // Skip daily item limit check for admin users
+        if (user.role !== 'admin') {
+            const canCreate = await user.canCreateItem();
+            
+            if (!canCreate.can) {
+                const nextReset = new Date();
+                nextReset.setHours(24, 0, 0, 0);
+                
+                return res.status(429).json({ 
+                    error: 'daily_limit_reached',
+                    msg: `You have reached your daily limit of ${canCreate.max} items per day. You can create minimum ${canCreate.min} and maximum ${canCreate.max} items per day on ${canCreate.plan} plan.`,
+                    type: 'limit_exceeded',
+                    limit: {
+                        min: canCreate.min,
+                        max: canCreate.max,
+                        used: canCreate.used,
+                        remaining: canCreate.remaining,
+                        plan: canCreate.plan,
+                        isPremium: canCreate.isPremium,
+                        resetAt: nextReset.toISOString(),
+                        resetIn: 'tomorrow at midnight'
+                    },
+                    upgrade: {
+                        available: !canCreate.isPremium,
+                        message: 'Upgrade to Premium for unlimited items',
+                        url: '/plan'
+                    }
+                });
+            }
+        }
+
+        const limitInfo = {
+            min: canCreate.min,
+            max: canCreate.max,
+            used: canCreate.isPremium ? 0 : (canCreate.used || 0),
+            remaining: canCreate.remaining,
+            plan: canCreate.plan
+        };
+
         const { type, title, description, category, location, date, reward } = req.body;
 
         let parsedReward = undefined;
@@ -44,8 +88,14 @@ exports.createItem = async (req, res) => {
             } : undefined
         });
 
-        const item = await newItem.save();
-        const populated = await Item.findById(item._id).populate('poster', 'name email phone');
+        await newItem.save();
+        
+        // Only record item count for non-admin users
+        if (user.role !== 'admin') {
+            await user.recordItemCreated();
+        }
+        
+        const populated = await Item.findById(newItem._id).populate('poster', 'name email phone');
         res.status(201).json(populated);
     } catch (err) {
         console.error(err.message);

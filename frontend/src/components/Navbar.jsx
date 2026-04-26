@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, PlusCircle, User, LogOut, ShieldCheck, LayoutDashboard, Package, Bell, Menu, X, Home, Info, Star } from 'lucide-react';
+import { Search, PlusCircle, User, LogOut, ShieldCheck, LayoutDashboard, Package, Bell, Menu, X, Home, Info, Star, Crown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -120,12 +120,6 @@ const Navbar = () => {
                 </AnimatePresence>
               </div>
 
-              {user.role === 'admin' && (
-                <button className="btn btn-outline btn-sm hidden-mobile" onClick={() => navigate('/admin')}>
-                  <ShieldCheck size={16} /> Admin
-                </button>
-              )}
-              
               <div 
                 ref={dropdownRef}
                 className="navbar-avatar-container" 
@@ -162,9 +156,16 @@ const Navbar = () => {
                           <button className="dropdown-item" onClick={() => navigate(user.role === 'admin' ? '/admin' : '/profile')}>
                             <LayoutDashboard size={16} /> {user.role === 'admin' ? 'Admin Panel' : 'My Dashboard'}
                           </button>
-                          <button className="dropdown-item" onClick={() => navigate('/post')}>
-                            <Package size={16} /> Report Item
-                          </button>
+                          {user.role !== 'admin' && (
+                            <button className="dropdown-item" onClick={() => navigate('/post')}>
+                              <Package size={16} /> Report Item
+                            </button>
+                          )}
+                          {(!user.plan || user.plan === 'free') && (
+                            <button className="dropdown-item" onClick={() => navigate('/plan')} style={{ color: '#f59e0b' }}>
+                              <Crown size={16} /> Get Premium
+                            </button>
+                          )}
                           <button className="dropdown-item" onClick={handleLogout} style={{ color: '#ef4444' }}>
                             <LogOut size={16} /> Logout
                           </button>

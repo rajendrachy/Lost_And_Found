@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
-import API from '../api';
+import API, { getAdminPlanRequests, respondPlanRequest } from '../api';
 import { motion } from 'framer-motion';
 import { 
   Users, Box, Trash2, Search, ArrowLeft, ShieldCheck, CheckCircle, MapPin, AlertTriangle,
-  Menu, X, RefreshCw, AlertCircle, TrendingUp, LogOut
+  Menu, X, RefreshCw, AlertCircle, TrendingUp, LogOut, Crown, Check, XCircle
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 
@@ -19,6 +19,7 @@ const Admin = () => {
   const [users, setUsers] = useState([]);
   const [items, setItems] = useState([]);
   const [reports, setReports] = useState([]);
+  const [planRequests, setPlanRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -27,16 +28,18 @@ const Admin = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statsRes, usersRes, itemsRes, reportsRes] = await Promise.all([
+      const [statsRes, usersRes, itemsRes, reportsRes, planRes] = await Promise.all([
         API.get('/admin/stats').catch(() => ({ data: { users: 0, items: 0, resolved: 0 } })),
         API.get('/admin/users').catch(() => ({ data: [] })),
         API.get('/admin/items').catch(() => ({ data: [] })),
-        API.get('/reports').catch(() => ({ data: [] }))
+        API.get('/reports').catch(() => ({ data: [] })),
+        getAdminPlanRequests().catch(() => ({ data: [] }))
       ]);
       setStats(statsRes.data);
       setUsers(usersRes.data);
       setItems(itemsRes.data);
       setReports(reportsRes.data);
+      setPlanRequests(planRes.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -69,15 +72,27 @@ const Admin = () => {
     } catch { alert('Failed'); }
   };
 
+  const handlePlanAction = async (userId, action, response = '') => {
+    if (!window.confirm(`Are you sure you want to ${action} this plan request?`)) return;
+    try {
+      await respondPlanRequest(userId, action, response);
+      setPlanRequests(planRequests.map(p => p._id === userId ? { ...p, planRequest: { ...p.planRequest, status: action === 'approve' ? 'approved' : 'rejected' } } : p));
+      fetchData();
+    } catch { alert('Failed to process request'); }
+  };
+
   const filteredUsers = users.filter(u => u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase()));
   const filteredItems = items.filter(i => i.title?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredPlanRequests = planRequests.filter(u => u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase()));
   const pendingReports = reports.filter(r => r.status === 'pending').length;
+  const pendingPlanRequests = planRequests.filter(p => p.planRequest.status === 'pending').length;
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'items', label: 'Items', icon: '📦' },
     { id: 'reports', label: 'Reports', icon: '🚨', badge: pendingReports },
+    { id: 'plans', label: 'Plans', icon: '💎', badge: pendingPlanRequests },
   ];
 
   const StatCard = ({ title, value, change, icon, gradient, color }) => (
@@ -345,6 +360,56 @@ const Admin = () => {
                           {r.status === 'pending' && <button onClick={() => handleReportAction(r._id, 'resolved')} style={{ padding: '0.5rem 0.75rem', borderRadius: 8, background: '#10b981', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>Resolve</button>}
                         </div>
                       </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* PLAN REQUESTS */}
+            {activeTab === 'plans' && (
+              <div>
+                {filteredPlanRequests.length === 0 ? (
+                  <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>No plan requests found</div>
+                ) : (
+                  filteredPlanRequests.map(u => (
+                    <motion.div key={u._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
+                      style={{ background: 'white', borderRadius: 12, padding: '1rem', border: '1px solid #e5e7eb', marginBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem' }}>
+                        <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700 }}>
+                          {u.name?.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{u.name}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{u.email}</div>
+                        </div>
+                        <span style={{ padding: '0.25rem 0.75rem', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 600, 
+                          background: u.planRequest.status === 'pending' ? '#fef3c7' : u.planRequest.status === 'approved' ? '#d1fae5' : '#fee2e2',
+                          color: u.planRequest.status === 'pending' ? '#d97706' : u.planRequest.status === 'approved' ? '#059669' : '#dc2626'
+                        }}>
+                          {u.planRequest.status?.toUpperCase()}
+                        </span>
+                      </div>
+                      
+                      {u.planRequest.message && (
+                        <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: 8, marginBottom: '0.75rem', fontSize: '0.85rem', color: '#4b5563' }}>
+                        <Crown size={14} style={{ display: 'inline', marginRight: '0.5rem' }} />
+                        {u.planRequest.message}
+                      </div>
+                      )}
+                      
+                      {u.planRequest.status === 'pending' && (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => handlePlanAction(u._id, 'approve', 'Your premium plan has been approved!')} 
+                            style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: 8, background: '#10b981', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <Check size={16} /> Approve
+                          </button>
+                          <button onClick={() => handlePlanAction(u._id, 'reject', 'Your plan request was rejected.')} 
+                            style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: 8, background: '#ef4444', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <XCircle size={16} /> Reject
+                          </button>
+                        </div>
+                      )}
                     </motion.div>
                   ))
                 )}
