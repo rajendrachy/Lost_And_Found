@@ -25,7 +25,7 @@
 
 ---
 
-## 📥 Installation & Setup
+## 📥 Installation & Setup :-> 
 
 ### Prerequisites
 - Node.js installed on your machine.
