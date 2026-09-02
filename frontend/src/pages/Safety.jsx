@@ -92,3 +92,5 @@ const Safety = () => {
 };
 
 export default Safety;
+
+

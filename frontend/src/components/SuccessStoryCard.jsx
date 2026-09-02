@@ -4,14 +4,13 @@ import { MapPin, Heart, Quote, ArrowRight, ShieldCheck, Clock } from 'lucide-rea
 import { formatTimeAgo } from '../utils/timeUtils';
 
 const SuccessStoryCard = ({ item, index }) => {
-  // Determine finder and owner names
   let finderName = 'Anonymous Hero';
   let ownerName = 'Verified Owner';
   
   if (item.type === 'found') {
     finderName = item.poster?.name || 'A Finder';
-    // The owner is the one who claimed it, but if we don't have that easily, 
-    // we can use a generic "Community Member" or find the approved claim
+    
+
     ownerName = item.claims?.find(c => c.status === 'approved')?.user?.name || 'Community Member';
   } else {
     ownerName = item.poster?.name || 'An Owner';
@@ -142,3 +141,6 @@ const SuccessStoryCard = ({ item, index }) => {
 };
 
 export default SuccessStoryCard;
+
+
+

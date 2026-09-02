@@ -49,7 +49,10 @@ const userSchema = new mongoose.Schema({
     longestStreak: { type: Number, default: 0 },
     totalItemsPosted: { type: Number, default: 0 },
     totalClaimsSubmitted: { type: Number, default: 0 },
-    isVerified: { type: Boolean, default: true },
+    isVerified: { type: Boolean, default: false },
+    isApproved: { type: Boolean, default: false },
+    approvedAt: Date,
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     verificationToken: String,
     resetToken: String,
     resetTokenExpiry: Date,
@@ -87,7 +90,7 @@ userSchema.statics.BADGE_TIERS = [
     { threshold: 500, type: 'diamond', name: 'Master', description: 'Resolved 500 items' }
 ];
 
-// Method to check and award badges
+
 userSchema.methods.checkAndAwardBadges = function() {
     if (!this.badges) {
         this.badges = [];
@@ -109,23 +112,20 @@ userSchema.methods.checkAndAwardBadges = function() {
     return newBadges;
 };
 
-// Hash password before saving
+
 userSchema.pre('save', async function(next) {
     if (!this.isModified('password')) return next();
     this.password = await bcrypt.hash(this.password, 10);
     next();
 });
 
-// Free plan limits per day
 const FREE_ITEM_MIN = 1;
 const FREE_ITEM_MAX = 12;
 const FREE_LOGIN_MIN = 1;
 const FREE_LOGIN_MAX = 12;
 
-// Premium plan limits (unlimited)
 const PREMIUM_LIMIT = 999;
 
-// Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
@@ -160,7 +160,7 @@ userSchema.methods.getDailyLoginLimit = function() {
 userSchema.methods.canCreateItem = async function() {
     const limit = this.getDailyItemLimit();
     
-    // Admin or premium gets unlimited
+
     if (this.role === 'admin' || limit >= PREMIUM_LIMIT) return { 
         can: true, 
         remaining: 999,
@@ -173,7 +173,7 @@ userSchema.methods.canCreateItem = async function() {
     const now = new Date();
     const isNewDay = !this.itemsCreatedDate || now.toDateString() !== this.itemsCreatedDate.toDateString();
     
-    // Reset count for new day (don't save yet)
+
     if (isNewDay) {
         return { 
             can: true, 
@@ -224,7 +224,7 @@ userSchema.methods.recordItemCreated = async function() {
 userSchema.methods.canLoginToday = async function() {
     const limit = this.getDailyLoginLimit();
     
-    // Admin or premium gets unlimited
+
     if (this.role === 'admin' || limit >= PREMIUM_LIMIT) return { 
         can: true, 
         remaining: 999,
@@ -285,3 +285,6 @@ userSchema.methods.recordLogin = async function() {
 };
 
 module.exports = mongoose.model('User', userSchema);
+
+
+

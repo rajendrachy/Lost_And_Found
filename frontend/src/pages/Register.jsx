@@ -19,12 +19,8 @@ const Register = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const userData = await register(formData);
-      if (userData.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/profile');
-      }
+      await register(formData);
+      navigate('/login');
     } catch (err) {
       // handled by context
     } finally {

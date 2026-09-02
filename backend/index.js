@@ -16,7 +16,6 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(morgan('dev'));
 
-// CORS configuration
 const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.trim() : null;
 const normalizedFrontendUrl = frontendUrl && !frontendUrl.startsWith('http') 
     ? `https://${frontendUrl}` 
@@ -53,7 +52,6 @@ const rateLimitHandler = (req, res, options) => {
     });
 };
 
-// Rate limiting - general
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -62,7 +60,6 @@ const generalLimiter = rateLimit({
     handler: rateLimitHandler
 });
 
-// Rate limiting - auth routes (stricter with progressive lockout)
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 50,
@@ -82,7 +79,6 @@ const authLimiter = rateLimit({
     validate: { ip: false }
 });
 
-// Progressive auth lockout - skip admin emails
 const progressiveAuthLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 20,
@@ -111,7 +107,6 @@ const progressiveAuthLimiter = rateLimit({
     validate: { ip: false }
 });
 
-// Rate limiting - create item
 const itemLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 20,
@@ -120,17 +115,14 @@ const itemLimiter = rateLimit({
     handler: rateLimitHandler
 });
 
-// Body parser
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Apply rate limiting
 app.use('/api', generalLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api/auth', progressiveAuthLimiter);
 app.use('/api/items', itemLimiter);
 
-// Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/items', require('./routes/itemRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
@@ -141,13 +133,11 @@ app.get('/', (req, res) => {
     res.send('Sajha Khoj API is running...');
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ msg: 'Something went wrong!' });
 });
 
-// Port
 const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
@@ -159,3 +149,6 @@ mongoose.connect(process.env.MONGO_URI)
         });
     })
     .catch(err => console.log(err));
+
+
+    

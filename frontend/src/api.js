@@ -13,6 +13,7 @@ API.interceptors.request.use((config) => {
 export const getPlanStatus = () => API.get('/auth/plan-status');
 export const requestPlan = (message) => API.post('/auth/request-plan', { message });
 export const getAdminPlanRequests = () => API.get('/admin/plan-requests');
+export const approveUserAccount = (userId) => API.post(`/admin/users/${userId}/approve`);
 export const respondPlanRequest = (userId, action, response) => API.post(`/admin/plan-requests/${userId}`, { action, response });
 
 export default API;

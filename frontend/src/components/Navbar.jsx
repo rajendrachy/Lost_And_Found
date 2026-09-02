@@ -32,7 +32,7 @@ const Navbar = () => {
     return () => clearInterval(interval);
   }, [user]);
 
-  // Click outside listener
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -226,3 +226,6 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
+
+

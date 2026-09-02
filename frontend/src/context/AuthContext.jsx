@@ -53,9 +53,6 @@ export const AuthProvider = ({ children }) => {
         try {
             setError(null);
             const res = await API.post('/auth/register', userData);
-            localStorage.setItem('token', res.data.token);
-            localStorage.setItem('user', JSON.stringify(res.data));
-            setUser(res.data);
             return res.data;
         } catch (err) {
             const retryInfo = err.response?.data;
@@ -136,3 +133,6 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     );
 };
+
+
+

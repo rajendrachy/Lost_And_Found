@@ -7,7 +7,6 @@ const seed = async () => {
         await mongoose.connect(process.env.MONGO_URI);
         console.log('Connected to DB');
 
-        // Check and create normal user
         let user = await User.findOne({ email: 'user@gmail.com' });
         if (!user) {
             user = new User({ name: 'Test User', email: 'user@gmail.com', password: 'password123', role: 'user' });
@@ -19,7 +18,6 @@ const seed = async () => {
             console.log('Updated user@gmail.com password');
         }
 
-        // Check and create admin user
         let admin = await User.findOne({ email: 'admin@gmail.com' });
         if (!admin) {
             admin = new User({ name: 'System Admin', email: 'admin@gmail.com', password: 'password123', role: 'admin' });
@@ -41,3 +39,6 @@ const seed = async () => {
 };
 
 seed();
+
+
+

@@ -18,7 +18,6 @@ const NextStepPortal = () => {
       return;
     }
 
-    // Don't show next step portal for admin users - they have their own dashboard
     if (user.role === 'admin') {
       setNextStep(null);
       return;
@@ -27,7 +26,7 @@ const NextStepPortal = () => {
     const determineNextStep = async () => {
       try {
         setLoading(true);
-        // Don't show if we are on login/register pages
+
         if (['/login', '/register'].includes(location.pathname)) {
           setNextStep(null);
           return;
@@ -40,7 +39,6 @@ const NextStepPortal = () => {
         const myItems = resMy.data;
         const mySubmittedClaims = resClaims.data;
 
-        // 1. Check for pending claims to verify (High Priority - Finder side)
         const itemsWithPendingClaims = myItems.filter(i => i.claims?.some(c => c.status === 'pending') && i.status === 'active');
         if (itemsWithPendingClaims.length > 0) {
           setNextStep({
@@ -55,7 +53,6 @@ const NextStepPortal = () => {
           return;
         }
 
-        // 2. Check for approved claims you submitted (Owner side)
         const approvedClaims = mySubmittedClaims.filter(item => {
            const myClaim = item.claims?.find(c => c.user?._id === user?._id || c.user === user?._id);
            return myClaim?.status === 'approved' && !item.confirmedByOwner;
@@ -75,7 +72,6 @@ const NextStepPortal = () => {
            return;
         }
 
-        // 2. Check for recent active reports with no claims yet
         const activeReports = myItems.filter(i => i.status === 'active' && i.claims?.length === 0);
         if (activeReports.length > 0) {
            const latestReport = activeReports[0];
@@ -103,7 +99,6 @@ const NextStepPortal = () => {
            return;
         }
 
-        // 3. Just logged in / No posts?
         if (myItems.length === 0) {
            setNextStep({
              id: 'explore',
@@ -117,7 +112,6 @@ const NextStepPortal = () => {
            return;
         }
 
-        // 4. Default: Share success or post more
         setNextStep({
             id: 'post',
             title: 'Keep it up!',
@@ -165,7 +159,7 @@ const NextStepPortal = () => {
           alignItems: 'center',
           gap: '1rem',
           overflow: 'hidden',
-          flexWrap: 'wrap' // Allow wrapping on very small screens
+          flexWrap: 'wrap' 
         }}>
           <div style={{
             width: 48,
@@ -231,3 +225,6 @@ const NextStepPortal = () => {
 };
 
 export default NextStepPortal;
+
+
+

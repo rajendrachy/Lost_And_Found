@@ -1,8 +1,7 @@
 const User = require('../models/User');
 const Item = require('../models/Item');
 
-// @desc    Get dashboard stats
-// @route   GET api/admin/stats
+
 exports.getStats = async (req, res) => {
     try {
         const userCount = await User.countDocuments();
@@ -15,8 +14,6 @@ exports.getStats = async (req, res) => {
     }
 };
 
-// @desc    Get all users
-// @route   GET api/admin/users
 exports.getUsers = async (req, res) => {
     try {
         const users = await User.find().select('-password').sort({ createdAt: -1 });
@@ -27,8 +24,44 @@ exports.getUsers = async (req, res) => {
     }
 };
 
-// @desc    Delete user
-// @route   DELETE api/admin/users/:id
+exports.approveUserAccount = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId);
+
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        if (user.role === 'admin') {
+            return res.status(400).json({ msg: 'Admin accounts do not need approval.' });
+        }
+
+        user.isApproved = true;
+        user.approvedAt = new Date();
+        user.approvedBy = req.user.id;
+
+        if (!user.isVerified) {
+            user.isVerified = true;
+        }
+
+        await user.save();
+
+        res.json({
+            msg: 'User account approved successfully.',
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                isVerified: user.isVerified,
+                isApproved: user.isApproved
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
 exports.deleteUser = async (req, res) => {
     try {
         await User.findByIdAndDelete(req.params.id);
@@ -40,8 +73,6 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
-// @desc    Get all items
-// @route   GET api/admin/items
 exports.getItems = async (req, res) => {
     try {
         const items = await Item.find().populate('poster', 'name email').sort({ createdAt: -1 });
@@ -52,8 +83,6 @@ exports.getItems = async (req, res) => {
     }
 };
 
-// @desc    Delete item
-// @route   DELETE api/admin/items/:id
 exports.deleteItem = async (req, res) => {
     try {
         await Item.findByIdAndDelete(req.params.id);
@@ -64,8 +93,6 @@ exports.deleteItem = async (req, res) => {
     }
 };
 
-// @desc    Get all plan requests
-// @route   GET api/admin/plan-requests
 exports.getPlanRequests = async (req, res) => {
     try {
         const users = await User.find({ 
@@ -78,8 +105,7 @@ exports.getPlanRequests = async (req, res) => {
     }
 };
 
-// @desc    Approve or reject plan request
-// @route   POST api/admin/plan-requests/:userId
+
 exports.respondPlanRequest = async (req, res) => {
     try {
         const { action, response } = req.body;
@@ -116,3 +142,6 @@ exports.respondPlanRequest = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
+
+
+

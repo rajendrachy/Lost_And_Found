@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
-import API, { getAdminPlanRequests, respondPlanRequest } from '../api';
+import API, { getAdminPlanRequests, respondPlanRequest, approveUserAccount } from '../api';
 import { motion } from 'framer-motion';
 import { 
   Users, Box, Trash2, Search, ArrowLeft, ShieldCheck, CheckCircle, MapPin, AlertTriangle,
@@ -81,6 +81,17 @@ const Admin = () => {
     } catch { alert('Failed to process request'); }
   };
 
+  const handleApproveUser = async (userId) => {
+    if (!window.confirm('Approve this account so the user can log in without email verification?')) return;
+    try {
+      await approveUserAccount(userId);
+      setUsers(users.map(u => u._id === userId ? { ...u, isApproved: true, isVerified: true } : u));
+      fetchData();
+    } catch {
+      alert('Failed to approve user');
+    }
+  };
+
   const filteredUsers = users.filter(u => u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase()));
   const filteredItems = items.filter(i => i.title?.toLowerCase().includes(searchQuery.toLowerCase()));
   const filteredPlanRequests = planRequests.filter(u => u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -122,10 +133,20 @@ const Admin = () => {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#111827' }}>{u.name}</div>
         <div style={{ fontSize: '0.8rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+        <div style={{ marginTop: '0.35rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{ padding: '0.2rem 0.5rem', borderRadius: 9999, fontSize: '0.65rem', fontWeight: 700, background: u.role === 'admin' ? '#e0e7ff' : u.isApproved || u.isVerified ? '#d1fae5' : '#fef3c7', color: u.role === 'admin' ? '#3730a3' : u.isApproved || u.isVerified ? '#065f46' : '#92400e' }}>
+            {u.role === 'admin' ? 'ADMIN' : (u.isApproved || u.isVerified ? 'VERIFIED' : 'PENDING')}
+          </span>
+        </div>
       </div>
       <span style={{ padding: '0.25rem 0.75rem', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 600, background: u.role === 'admin' ? '#1f2937' : '#f3f4f6', color: u.role === 'admin' ? 'white' : '#4b5563' }}>
         {u.role}
       </span>
+      {!u.isApproved && u.role !== 'admin' && (
+        <button onClick={() => handleApproveUser(u._id)} style={{ padding: '0.5rem 0.75rem', borderRadius: 8, background: '#10b981', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}>
+          Approve
+        </button>
+      )}
       <button onClick={() => handleDeleteUser(u._id)} disabled={u.role === 'admin'} 
         style={{ padding: '0.5rem', borderRadius: 8, background: u.role === 'admin' ? '#f3f4f6' : '#fee2e2', border: 'none', color: u.role === 'admin' ? '#9ca3af' : '#ef4444', cursor: u.role === 'admin' ? 'not-allowed' : 'pointer' }}>
         <Trash2 size={18} />
@@ -425,3 +446,5 @@ const Admin = () => {
 };
 
 export default Admin;
+
+

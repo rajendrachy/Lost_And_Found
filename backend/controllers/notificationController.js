@@ -1,6 +1,6 @@
 const Notification = require('../models/Notification');
 
-// Get notifications for logged-in user
+
 exports.getNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({ recipient: req.user.id })
@@ -44,3 +44,5 @@ exports.deleteNotification = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
+
+

@@ -11,7 +11,6 @@ exports.createItem = async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
         
-        // Skip daily item limit check for admin users
         let canCreate = { can: true, min: 1, max: 999, used: 0, remaining: 999, isPremium: true, plan: 'admin' };
         
         if (user.role !== 'admin') {
@@ -76,7 +75,7 @@ exports.createItem = async (req, res) => {
             const result = await uploadToCloudinary(req.file.buffer);
             imageUrl = result.secure_url;
         } else {
-            // Assign custom animated default images if none uploaded
+            
             imageUrl = type === 'found' 
                 ? '/images/found_default.png' 
                 : '/images/lost_default.png';
@@ -100,7 +99,6 @@ exports.createItem = async (req, res) => {
 
         await newItem.save();
         
-        // Only record item count for non-admin users
         if (user.role !== 'admin') {
             await user.recordItemCreated();
         }
@@ -113,7 +111,6 @@ exports.createItem = async (req, res) => {
     }
 };
 
-// Get all items
 exports.getItems = async (req, res) => {
     try {
         const items = await Item.find()
@@ -128,7 +125,6 @@ exports.getItems = async (req, res) => {
     }
 };
 
-// Get items by type (lost/found)
 exports.getItemsByType = async (req, res) => {
     try {
         const items = await Item.find({ type: req.params.type }).sort({ createdAt: -1 }).populate('poster', 'name email phone');
@@ -139,7 +135,6 @@ exports.getItemsByType = async (req, res) => {
     }
 };
 
-// Get a single item
 exports.getItemById = async (req, res) => {
     try {
         const item = await Item.findById(req.params.id)
@@ -154,7 +149,7 @@ exports.getItemById = async (req, res) => {
     }
 };
 
-// Delete an item (only owner)
+
 exports.deleteItem = async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
@@ -170,7 +165,6 @@ exports.deleteItem = async (req, res) => {
     }
 };
 
-// Toggle item status (active/resolved)
 exports.toggleStatus = async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
@@ -187,7 +181,8 @@ exports.toggleStatus = async (req, res) => {
         item.status = item.status === 'active' ? 'resolved' : 'active';
         await item.save();
 
-        // AWARD REPUTATION if marked as resolved
+
+
         if (oldStatus === 'active' && item.status === 'resolved') {
             const user = await User.findById(req.user.id);
             if (user) {
@@ -214,7 +209,8 @@ exports.toggleStatus = async (req, res) => {
     }
 };
 
-// Get items posted by logged-in user
+
+
 exports.getMyItems = async (req, res) => {
     try {
         const items = await Item.find({ poster: req.user.id })
@@ -228,7 +224,8 @@ exports.getMyItems = async (req, res) => {
     }
 };
 
-// Owner confirms they got the item back from the founder
+
+
 exports.confirmRecovery = async (req, res) => {
     try {
         const item = await Item.findById(req.params.id).populate('claims.user').populate('returnedBy');
@@ -252,7 +249,6 @@ exports.confirmRecovery = async (req, res) => {
             item.returnedBy = approvedClaim.user._id;
         }
 
-        // Handle reward for found items
         if (item.type === 'found' && item.reward?.amount > 0 && item.reward?.claimed === false) {
             item.reward.claimed = true;
             item.reward.claimedBy = approvedClaim.user._id;
@@ -262,7 +258,7 @@ exports.confirmRecovery = async (req, res) => {
         item.resolutionStory = req.body.story || `Successfully reunited ${item.title} with its owner.`;
         await item.save();
 
-        // Notify the finder that reward is ready
+
         if (item.type === 'found' && item.reward?.amount > 0) {
             await Notification.create({
                 recipient: approvedClaim.user._id,
@@ -273,18 +269,18 @@ exports.confirmRecovery = async (req, res) => {
             });
         }
 
-        // Award points and badges to the finder
+
         const finder = await User.findById(item.poster);
         if (finder) {
             finder.reputationPoints += 500;
             finder.totalResolved += 1;
             finder.rating = Math.min(10, Math.floor(finder.totalResolved / 1));
             
-            // Check for new badges
+
             const newBadges = finder.checkAndAwardBadges();
             await finder.save();
 
-            // Notify about new badges
+
             for (const badge of newBadges) {
                 await Notification.create({
                     recipient: finder._id,
@@ -311,7 +307,8 @@ exports.confirmRecovery = async (req, res) => {
     }
 };
 
-// Submit a claim for a found item
+
+
 exports.submitClaim = async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
@@ -395,7 +392,8 @@ exports.verifyClaim = async (req, res) => {
     }
 };
 
-// Get items the user has claimed
+
+
 exports.getMyClaims = async (req, res) => {
     try {
         const items = await Item.find({ 'claims.user': req.user.id })
@@ -407,3 +405,6 @@ exports.getMyClaims = async (req, res) => {
         res.status(500).json({ msg: 'Server Error' });
     }
 };
+
+
+

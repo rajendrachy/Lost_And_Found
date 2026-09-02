@@ -26,16 +26,13 @@ const awardBadges = async () => {
         
         console.log(`Found user: ${user.name} with ${user.totalResolved} resolved`);
         
-        // Initialize badges array
         if (!user.badges) {
             user.badges = [];
         }
         
-        // Get current badges
         const currentBadges = user.badges.map(b => b.type + b.threshold);
         let awardedCount = 0;
         
-        // Check each tier
         for (const badge of BADGE_TIERS) {
             const badgeKey = badge.type + badge.threshold;
             if (user.totalResolved >= badge.threshold && !currentBadges.includes(badgeKey)) {
@@ -65,3 +62,5 @@ const awardBadges = async () => {
 };
 
 awardBadges();
+
+

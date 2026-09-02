@@ -18,8 +18,7 @@ const generateToken = (id) => {
     });
 };
 
-// @desc    Register a new user
-// @route   POST api/auth/register
+
 exports.registerUser = async (req, res) => {
     const { name, email, password, phone } = req.body;
 
@@ -56,8 +55,7 @@ exports.registerUser = async (req, res) => {
         }).catch(err => console.log('Email error:', err));
 
         res.status(201).json({
-            msg: 'Registration successful. Please check your email to verify account.',
-            token: generateToken(user._id)
+            msg: 'Registration successful. Please check your email to verify your account. An admin can also approve your account if needed.'
         });
     } catch (err) {
         console.error(err.message);
@@ -65,8 +63,8 @@ exports.registerUser = async (req, res) => {
     }
 };
 
-// @desc    Authenticate user & get token
-// @route   POST api/auth/login
+
+
 exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
 
@@ -75,9 +73,12 @@ exports.loginUser = async (req, res) => {
         if (!user) {
             return res.status(401).json({ msg: 'Invalid email or password' });
         }
-        
-        if (!user.isVerified) {
-            return res.status(401).json({ msg: 'Please verify your email first. Check your inbox.' });
+
+        const canLoginWithoutVerification = user.isVerified || user.isApproved;
+        if (!canLoginWithoutVerification) {
+            return res.status(401).json({ 
+                msg: 'Your account is pending email verification or admin approval.'
+            });
         }
         
         // Skip daily login limit check for admin users
@@ -111,12 +112,13 @@ exports.loginUser = async (req, res) => {
         }
         
         if (await user.comparePassword(password)) {
-            // Only record login for non-admin users
+           
+
             if (user.role !== 'admin') {
                 await user.recordLogin();
             }
             
-            // Check and award any missing badges
+           
             user.checkAndAwardBadges();
             await user.save();
             
@@ -145,13 +147,12 @@ exports.loginUser = async (req, res) => {
     }
 };
 
-// @desc    Get user profile
-// @route   GET api/auth/profile
 exports.getUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
         if (user) {
-            // Check and award any missing badges for existing users
+            
+
             const newBadges = user.checkAndAwardBadges();
             if (newBadges.length > 0) {
                 await user.save();
@@ -182,8 +183,6 @@ exports.getUserProfile = async (req, res) => {
     }
 };
 
-// @desc    Update user profile
-// @route   PUT api/auth/profile
 exports.updateProfile = async (req, res) => {
     try {
         const { name, phone } = req.body;
@@ -214,8 +213,7 @@ exports.updateProfile = async (req, res) => {
 
 const { uploadToCloudinary } = require('../middleware/upload');
 
-// @desc    Update user avatar
-// @route   POST api/auth/avatar
+
 exports.updateAvatar = async (req, res) => {
     try {
         if (!req.file) {
@@ -238,9 +236,7 @@ exports.updateAvatar = async (req, res) => {
     }
 };
 
-// @desc    Change password
-// @route   PUT /api/auth/password
-// @access  Private
+
 exports.changePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
@@ -267,9 +263,7 @@ res.json({ msg: 'Password updated successfully' });
     }
 };
 
-// @desc    Sync badges for user
-// @route   POST api/auth/sync-badges
-// @access  Private
+
 exports.syncBadges = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -291,8 +285,7 @@ exports.syncBadges = async (req, res) => {
     }
 };
 
-// @desc    Forgot password - send reset email
-// @route   POST api/auth/forgot-password
+
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     
@@ -328,8 +321,7 @@ exports.forgotPassword = async (req, res) => {
     }
 };
 
-// @desc    Reset password
-// @route   POST api/auth/reset-password
+
 exports.resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
     
@@ -355,8 +347,6 @@ exports.resetPassword = async (req, res) => {
     }
 };
 
-// @desc    Verify email
-// @route   GET api/auth/verify/:token
 exports.verifyEmail = async (req, res) => {
     try {
         const user = await User.findOne({ verificationToken: req.params.token });
@@ -376,8 +366,7 @@ exports.verifyEmail = async (req, res) => {
     }
 };
 
-// @desc    Request premium plan
-// @route   POST api/auth/request-plan
+
 exports.requestPlan = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -408,8 +397,7 @@ exports.requestPlan = async (req, res) => {
     }
 };
 
-// @desc    Get plan status
-// @route   GET api/auth/plan-status
+
 exports.getPlanStatus = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -434,3 +422,7 @@ exports.getPlanStatus = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
+
+
+
+
