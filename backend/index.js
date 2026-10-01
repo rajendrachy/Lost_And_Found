@@ -41,11 +41,15 @@ app.use(cors({
 }));
 
 const rateLimitHandler = (req, res, options) => {
-    const retryAfter = options.windowMs / 1000;
-    const remaining = Math.max(0, options.totalHits - req.rateLimit.used);
+    const retryAfter = Math.ceil((options.windowMs || 60000) / 1000);
+    const remaining = req.rateLimit ? Math.max(0, (options.totalHits || options.max || 0) - (req.rateLimit.used || 0)) : 0;
+    const errorMsg = typeof options.message === 'object' && options.message !== null
+        ? (options.message.msg || options.message.message || 'Too many requests, please try again later.')
+        : (options.message || 'Too many requests, please try again later.');
+
     res.set('Retry-After', retryAfter);
     res.status(429).json({
-        msg: options.message.msg,
+        msg: errorMsg,
         retryAfter: retryAfter,
         remainingAttempts: remaining,
         locked: true
@@ -54,10 +58,12 @@ const rateLimitHandler = (req, res, options) => {
 
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 1000,
     standardHeaders: true,
     legacyHeaders: false,
-    handler: rateLimitHandler
+    message: { msg: 'Too many requests, please try again later.' },
+    handler: rateLimitHandler,
+    skip: (req) => req.method === 'OPTIONS' || req.path.includes('/notifications')
 });
 
 const authLimiter = rateLimit({
@@ -65,6 +71,7 @@ const authLimiter = rateLimit({
     max: 50,
     standardHeaders: true,
     legacyHeaders: false,
+    message: { msg: 'Too many authentication attempts, please try again later.' },
     keyGenerator: (req) => {
         const body = req.body || {};
         return body.email || body.username || 'auth';
@@ -84,6 +91,7 @@ const progressiveAuthLimiter = rateLimit({
     max: 20,
     standardHeaders: true,
     legacyHeaders: false,
+    message: { msg: 'Too many failed attempts. Account temporarily locked.' },
     keyGenerator: (req) => {
         const body = req.body || {};
         return 'progressive:' + (body.email || body.username || 'auth');
@@ -109,14 +117,16 @@ const progressiveAuthLimiter = rateLimit({
 
 const itemLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 20,
+    max: 60,
     standardHeaders: true,
     legacyHeaders: false,
-    handler: rateLimitHandler
+    message: { msg: 'Too many item submissions, please slow down.' },
+    handler: rateLimitHandler,
+    skip: (req) => req.method === 'GET' || req.method === 'OPTIONS'
 });
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 app.use('/api', generalLimiter);
 app.use('/api/auth', authLimiter);
@@ -134,8 +144,14 @@ app.get('/', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ msg: 'Something went wrong!' });
+    console.error('Unhandled Error:', err.stack || err);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ msg: 'Image size exceeds the allowed limit (15MB). Please choose a smaller image.' });
+    }
+    if (err.message && err.message.includes('Only image files are allowed')) {
+        return res.status(400).json({ msg: err.message });
+    }
+    res.status(500).json({ msg: err.message || 'Something went wrong!' });
 });
 
 const PORT = process.env.PORT || 5000;

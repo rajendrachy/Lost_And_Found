@@ -72,10 +72,16 @@ exports.createItem = async (req, res) => {
 
         let imageUrl = '';
         if (req.file) {
-            const result = await uploadToCloudinary(req.file.buffer);
-            imageUrl = result.secure_url;
+            try {
+                const result = await uploadToCloudinary(req.file.buffer);
+                imageUrl = result.secure_url;
+            } catch (uploadErr) {
+                console.error('Cloudinary Upload Error:', uploadErr);
+                return res.status(500).json({ 
+                    msg: `Image upload failed: ${uploadErr.message || 'Error connecting to Cloudinary. Please verify Cloudinary credentials on Render.'}` 
+                });
+            }
         } else {
-            
             imageUrl = type === 'found' 
                 ? '/images/found_default.png' 
                 : '/images/lost_default.png';
@@ -106,8 +112,8 @@ exports.createItem = async (req, res) => {
         const populated = await Item.findById(newItem._id).populate('poster', 'name email phone');
         res.status(201).json(populated);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ msg: 'Server Error' });
+        console.error('Create Item Error:', err);
+        res.status(500).json({ msg: err.message || 'Server Error while creating item' });
     }
 };
 
